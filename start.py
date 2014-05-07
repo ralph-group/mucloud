@@ -33,7 +33,7 @@ instance_address = reservation.public_dns_name
 # SFTP the mumax input file
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect(instance_address, username='ubuntu')
+ssh.connect(instance_address, username='ec2-user')
 sftp = ssh.open_sftp()
 sftp.push(input_file, "/input.in") # TODO: correctly get input file from args
 
