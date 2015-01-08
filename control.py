@@ -21,8 +21,12 @@ instances          = conn.get_only_instances()
 live_instances     = [i for i in instances if i.state == u'running']
 instance_addresses = [i.public_dns_name for i in live_instances]
 
-# Poll the status of each instances:
+#TODO: add check for mumax3 tag in instance information
+#TODO: add method for launching new instances
+#TODO: prompt to add new instance if none are available
+
 def status(echo=True):
+    """Poll the status of each instance"""
     loads = {}
     try:
         for address, instance in zip(instance_addresses, live_instances):
@@ -40,6 +44,7 @@ def status(echo=True):
     return loads
 
 def run(job_name, script_file):
+    """Run the script file on the instance with the smallest number of queued files"""
     try:
         loads = status(echo=False)
         sortedLoads = sorted(loads, key=loads.get, reverse=False)
@@ -70,3 +75,4 @@ if __name__ == '__main__':
     name     = sys.argv[1]
     filename = sys.argv[2]
     run(name, filename)
+    status()
