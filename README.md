@@ -1,7 +1,18 @@
 mumax-ec2
 =========
 
-Scripts for running mumax on EC2 GPU instances
+Cross-platform script for running Mumax3 on Amazon Web Services (AWS) Elastic Compute Cloud (EC2).
+
+### Install
+
+Download the latest release from GitHub.
+
+### Usage
+
+```
+python mumax-ec2.py input_filename.mx3
+```
+
 
 ### Virtual Environment
 
