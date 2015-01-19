@@ -53,10 +53,16 @@ def launch_instance(conn):
     return instance
 
 
-def stop_instance(conn, instance_id):
+def stop_instance(conn, instance):
     """ Stops an AWS instance """
     print "Stopping instance"
-    conn.stop_instances(instance_ids=[instance_id])
+    conn.stop_instances(instance_ids=[instance.id])
+
+
+def terminate_instance(conn, instance):
+    """ Stops an AWS instance """
+    print "Terminating instance"
+    conn.terminate_instances(instance_ids=[instance.id])
 
 
 def put_input_file(ssh, filename):
@@ -81,7 +87,7 @@ def run(job_name, script_file):
 
     if len(ready_instances) == 0:
         print "There are no instances waiting to be used."
-        answer = raw_input("Create a new instance for this job? [Yn]:")
+        answer = raw_input("Create a new instance for this job? [Yn]: ")
         if len(answer) == 0 or answer.startswith(("Y", "y")):
             instance = launch_instance()
             print "Waiting for instance to boot up..."
@@ -129,10 +135,20 @@ def run(job_name, script_file):
                 print "Finished simulations"
 
                 get_output_files(ssh)
+
+                answer = raw_input("Terminate the instance? [Yn]: ")
+                if len(answer) == 0 or answer.startswith(("Y", "y")):
+                    terminate_instance(instance)
+                else:
+                    answer = raw_input("Stop the instance? [Yn]: ")
+                    if len(answer) == 0 or answer.startswith(("Y", "y")):
+                        stop_instance(instance)
+                    else:
+                        print "The instance has been left running"
         else:
             print "No instance will be launched"
-            
-        print "Finished"
+
+        print "Mumax-ec2 has finished"
 
 
 if __name__ == '__main__':
