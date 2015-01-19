@@ -5,12 +5,18 @@ All settings should be stored in the config.ini file
 """
 
 __version__ = 1.0
-__TAG__ = 'mumax-ec2'
+
+__TAG__ = u'mumax-ec2'
+__STATUS__ = u'status'
+__READY__ = 1
+
 # TODO: Compare mumax-ec2 tag with version
 
 import boto.ec2
 import paramiko
 import sys, os
+from time import sleep
+import select
 
 # Start the config parser
 import ConfigParser
@@ -22,73 +28,111 @@ conn = boto.ec2.connect_to_region(config.get('EC2', 'Region'),
             aws_access_key_id=config.get('EC2', 'AccessID'),
             aws_secret_access_key=config.get('EC2', 'SecretKey'))
             
-search_condition = lambda i: i.state == u'running' and __TAG__ in i.tags
+search_condition = lambda i: (i.state == u'running' and 
+    __TAG__ in i.tags and 
+    __STATUS__ in i.tags and
+    i.tags[__STATUS__] == __READY__
+)
 
 instances          = conn.get_only_instances()
-live_instances     = [i for i in instances if search_condition(i)]
-instance_addresses = [i.public_dns_name for i in live_instances]
+ready_instances     = [i for i in instances if search_condition(i)]
 
-#TODO: prompt to add new instance if none are available
 
 def launch_instance(conn):
     """ Launch a new AWS instance """
+    print "Creating a new instance of %s" % config.get('EC2', 'Image')
     reservation = conn.run_instances(
             config.get('EC2', 'Image'),
             key_name=config.get('EC2', 'PrivateKeyName'),
             instance_type=config.get('EC2', 'InstanceType'),
             security_groups=config.get('EC2', 'SecurityGroups').split(',')
     )
-    for i in reservation.instances:
-        i.add_tag(__TAG__, __version__)
+    instance = reservation.instances[0]
+    instance.add_tag(__TAG__, __version__)
+    instance.add_tag(__STATUS__, __READY__)
+    return instance
 
 
 def stop_instance(conn, instance_id):
     """ Stops an AWS instance """
+    print "Stopping instance"
     conn.stop_instances(instance_ids=[instance_id])
 
 
-def status(echo=True):
-    """Poll the status of each instance"""
-    loads = {}
-    try:
-        for address, instance in zip(instance_addresses, live_instances):
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(address, username='ec2-user', key_filename=config.get('EC2', 'PrivateKeyFile'))
-            stdin, stdout, stderr = ssh.exec_command("python27 control/qclient.py list")
-            if echo:
-                print "==== Status of instance %s ====" % instance.id 
-                print stdout.read()
-            stdin, stdout, stderr = ssh.exec_command("python27 control/qclient.py load")
-            loads[instance] = int(stdout.read())
-    except:
-        print "Couldn't contact server"
-    return loads
+def put_input_file(ssh, filename):
+    """ Put the file in the input directory """
+    print "Transferring input file to instance"
+    sftp = ssh.open_sftp()
+    sftp.put(filename, "input/"+filename)
+
+
+def get_output_files(ssh, filename):
+    """ Get the simulation files and put them in the 
+    current directory
+    """
+    print "Receiving output files from instance"
+    sftp = ssh.open_sftp()
+    sftp.get() #TODO: Implement the getting of the files
 
 
 def run(job_name, script_file):
-    """Run the script file on the instance with the smallest number of queued files"""
-    try:
-        loads = status(echo=False)
-        sortedLoads = sorted(loads, key=loads.get, reverse=False)
-        for w in sortedLoads:
-            print "Instance", w.id, "has a load of", loads[w]
+    """Run the mumax input file on a ready instance
+    """
 
-        best_node = sortedLoads[0]
-        script_name = job_name + "_" + os.path.basename(script_file) 
-        print "Running on instance with lowest load:", best_node.id
-        # Establish connection
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(best_node.public_dns_name, username='ec2-user', key_filename=config.get('EC2', 'PrivateKeyFile'))
-        # Put the script file on the instance
-        sftp = ssh.open_sftp()
-        sftp.put(script_file, "input/"+script_name) 
-        # Add the job to the queue
-        stdin, stdout, stderr = ssh.exec_command("python27 control/qclient.py add %s %s" % (job_name, script_name))
+    if len(ready_instances) == 0:
+        print "There are no instances waiting to be used."
+        answer = raw_input("Create a new instance for this job? [Yn]:")
+        if len(answer) == 0 or answer.startswith(("Y", "y")):
+            instance = launch_instance()
+            print "Waiting for instance to boot up..."
+            while instance.state != u'running':
+                sleep(0.5)
+            print "Instance is ready"
 
-    except:
-        print "Couldn't contact server"
+            instace.remove_tag(__STATUS__)
+            try:
+                # Establish connection
+                ssh = paramiko.SSHClient()
+                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                ssh.connect(instance.public_dns_name, 
+                    username='ec2-user', 
+                    key_filename=config.get('EC2', 'PrivateKeyFile')
+                )
+ 
+                put_input_file(ssh, script_file)
+
+                transport = ssh.get_transport()
+                channel = transport.open_session()
+
+                channel.exec_command("mumax3 input/%s" % script_file)
+
+                # TODO: Test blocking ability
+                while True:
+                    try:
+                        rl, wl, xl = select.select([channel], [], [], 0.0)
+                        if len(rl) > 0:
+                            print channel.recv(1024)
+                    except KeyboardInterrupt:
+                        print "Caught Ctrl-C"
+                        channel.close()
+
+                        try:
+                            # Try to kill the process
+                            ssh.get_transport().open_session().exec_command(
+                                "kill -9 `ps -fu | grep mumax3 | grep -v grep | awk '{print $2}'`"
+                            )
+                        except:
+                            pass
+
+                        ssh.close()
+
+                print "Finished simulations"
+
+                get_output_files(ssh)
+        else:
+            print "No instance will be launched"
+            
+        print "Finished"
 
 
 if __name__ == '__main__':
@@ -99,4 +143,3 @@ if __name__ == '__main__':
     name     = sys.argv[1]
     filename = sys.argv[2]
     run(name, filename)
-    status()
