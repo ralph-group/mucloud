@@ -3,6 +3,11 @@
 All settings should be stored in the config.ini file
 
 """
+
+__version__ = 1.0
+__TAG__ = 'mumax-ec2'
+# TODO: Compare mumax-ec2 tag with version
+
 import boto.ec2
 import paramiko
 import sys, os
@@ -17,13 +22,30 @@ conn = boto.ec2.connect_to_region(config.get('EC2', 'Region'),
             aws_access_key_id=config.get('EC2', 'AccessID'),
             aws_secret_access_key=config.get('EC2', 'SecretKey'))
             
+search_condition = lambda i: i.state == u'running' and __TAG__ in i.tags
+
 instances          = conn.get_only_instances()
-live_instances     = [i for i in instances if i.state == u'running']
+live_instances     = [i for i in instances if search_condition(i)]
 instance_addresses = [i.public_dns_name for i in live_instances]
 
-#TODO: add check for mumax3 tag in instance information
-#TODO: add method for launching new instances
 #TODO: prompt to add new instance if none are available
+
+def launch_instance(conn):
+    """ Launch a new AWS instance """
+    reservation = conn.run_instances(
+            config.get('EC2', 'Image'),
+            key_name=config.get('EC2', 'PrivateKeyName'),
+            instance_type=config.get('EC2', 'InstanceType'),
+            security_groups=config.get('EC2', 'SecurityGroups').split(',')
+    )
+    for i in reservation.instances:
+        i.add_tag(__TAG__, __version__)
+
+
+def stop_instance(conn, instance_id):
+    """ Stops an AWS instance """
+    conn.stop_instances(instance_ids=[instance_id])
+
 
 def status(echo=True):
     """Poll the status of each instance"""
@@ -42,6 +64,7 @@ def status(echo=True):
     except:
         print "Couldn't contact server"
     return loads
+
 
 def run(job_name, script_file):
     """Run the script file on the instance with the smallest number of queued files"""
@@ -67,9 +90,10 @@ def run(job_name, script_file):
     except:
         print "Couldn't contact server"
 
+
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print  "Usage: control.py name filename"
+        print  "Usage: mumax-ec2.py name filename"
         sys.exit()
         
     name     = sys.argv[1]
