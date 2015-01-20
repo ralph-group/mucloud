@@ -56,6 +56,13 @@ def launch_instance():
     return instance
 
 
+def updated_instance(instance):
+    """ Returns and updated version of the instance
+    """
+    reservation = conn.get_all_instances(instance_ids=[instance.id])[0]
+    return reservation.instances[0]
+
+
 def get_ready_instance():
     """ Returns an instance from the ready list or launches 
     a new instance upon prompt
@@ -68,6 +75,7 @@ def get_ready_instance():
             print "Waiting for instance %s to boot up..." % instance.id
             while instance.state != u'running':
                 sleep(0.5)
+                instance = updated_instance(instance)
             print "Instance %s is ready" % instance.id
             return instance
         else:
