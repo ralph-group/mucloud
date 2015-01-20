@@ -56,13 +56,6 @@ def launch_instance():
     return instance
 
 
-def updated_instance(instance):
-    """ Returns and updated version of the instance
-    """
-    reservation = conn.get_all_instances(instance_ids=[instance.id])[0]
-    return reservation.instances[0]
-
-
 def get_ready_instance():
     """ Returns an instance from the ready list or launches 
     a new instance upon prompt
@@ -74,8 +67,8 @@ def get_ready_instance():
             instance = launch_instance()
             print "Waiting for instance %s to boot up..." % instance.id
             while instance.state != u'running':
-                sleep(0.5)
-                instance = updated_instance(instance)
+                sleep(10)
+                instance.update()
             print "Instance %s is ready" % instance.id
             return instance
         else:
@@ -130,11 +123,13 @@ def run(local_input_file):
     sftp.put(local_input_file, input_file)
 
     print "Starting port forwarding"
+    mykey = paramiko.RSAKey.from_private_key_file(config.get('EC2', 'PrivateKeyFile'))
     server = SSHTunnelForwarder(
-        ssh_address=(instance.public_dns_name, PORT),
+        ssh_address=(instance.public_dns_name, 22),
         ssh_username=config.get('EC2', 'User'),
-        ssh_private_key=config.get('EC2', 'PrivateKeyFile'),
-        remote_bind_address=('127.0.0.1', PORT)
+        ssh_private_key=mykey,
+        remote_bind_address=('127.0.0.1', PORT),
+        local_bind_address=('127.0.0.1', PORT)
     )
     server.start()
 
@@ -143,10 +138,11 @@ def run(local_input_file):
 
 
     binary = "%s/mumax3/%s" % (directory, config.get('EC2', 'MuMaxBinary'))
-    channel.exec_command("%s -http=:%i -o=%s %s" % (binary, PORT, output_dir, input_file))
+    cmd = "%s -http=:%i -o=%s %s" % (binary, PORT, output_dir, input_file)
+    channel.exec_command(cmd)
 
     #TODO: Test blocking ability
-    while True:
+    while not channel.exit_status_ready():
         try:
             rl, wl, xl = select.select([channel], [], [], 0.0)
             if len(rl) > 0:
@@ -163,16 +159,16 @@ def run(local_input_file):
             except:
                 pass
 
-            ssh.close()
-
     print "Receiving output files from instance"
     sftp.chdir()
     files = sftp.listdir()
     for item in files:
-        sftp.get(files, local_data) #TODO: Actually implement file transfer
+        sftp.get(item, '.') #TODO: Actually implement file transfer
 
     print "Stopping port forwarding"
     server.stop()
+
+    ssh.close()
 
     answer = raw_input("Terminate the instance? [Yn]: ")
     if len(answer) == 0 or answer.startswith(("Y", "y")):
