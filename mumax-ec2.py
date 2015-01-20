@@ -8,10 +8,9 @@ __version__ = 1.0
 
 __TAG__ = u'mumax-ec2'
 __STATUS__ = u'status'
-__READY__ = 1
+__READY__ = u'1'
 PORT = 35367
 
-# TODO: Compare mumax-ec2 tag with version
 
 import boto.ec2
 import paramiko
@@ -38,18 +37,18 @@ search_condition = lambda i: (
     i.tags[__STATUS__] == __READY__
 )
 
-instances          = conn.get_only_instances()
-ready_instances     = [i for i in instances if search_condition(i)]
+instances = conn.get_only_instances()
+ready_instances = [i for i in instances if search_condition(i)]
 
 
 def launch_instance():
     """ Launch a new AWS instance """
     print "Creating a new instance of %s" % config.get('EC2', 'Image')
     reservation = conn.run_instances(
-            config.get('EC2', 'Image'),
-            key_name=config.get('EC2', 'PrivateKeyName'),
-            instance_type=config.get('EC2', 'InstanceType'),
-            security_groups=config.get('EC2', 'SecurityGroups').split(',')
+        config.get('EC2', 'Image'),
+        key_name=config.get('EC2', 'PrivateKeyName'),
+        instance_type=config.get('EC2', 'InstanceType'),
+        security_groups=config.get('EC2', 'SecurityGroups').split(',')
     )
     instance = reservation.instances[0]
     instance.add_tag(__TAG__, __version__)
@@ -66,15 +65,18 @@ def get_ready_instance():
         answer = raw_input("Create a new instance for this job? [Yn]: ")
         if len(answer) == 0 or answer.startswith(("Y", "y")):
             instance = launch_instance()
-            print "Waiting for instance to boot up..."
+            print "Waiting for instance %s to boot up..." % instance.id
             while instance.state != u'running':
                 sleep(0.5)
-            print "Instance is ready"
+            print "Instance %s is ready" % instance.id
+            return instance
         else:
             print "No instance will be launched"
             return None
     else:
         instance = ready_instances[0] # Select the 1st ready instance
+        print "Instance %s is ready" % instance.id
+        return instance
 
 
 def stop_instance(instance):
@@ -90,14 +92,14 @@ def terminate_instance(instance):
 
 
 
-def run(job_name, local_input_file):
+def run(local_input_file):
     """Run the mumax input file on a ready instance
     """
 
     instance = get_ready_instance()
     if instance == None: return None
 
-    instace.remove_tag(__STATUS__)
+    instance.remove_tag(__STATUS__)
     try:
         # Establish connection
         ssh = paramiko.SSHClient()
@@ -107,79 +109,80 @@ def run(job_name, local_input_file):
             key_filename=config.get('EC2', 'PrivateKeyFile')
         )
         sftp = ssh.open_sftp()
+    except:
+        print "Could not connect to remote server"
+        return
 
-        basename = os.path.basename(local_input_file)
-        directory = "/home/%s" % config.get('EC2', 'User')
-        input_file = "%s/input/%s" % (directory, basename)
-        output_dir = "%s/output/%s" % (directory, basename)
+    basename = os.path.basename(local_input_file)
+    directory = "/home/%s" % config.get('EC2', 'User')
+    input_file = "%s/input/%s" % (directory, basename)
+    output_dir = "%s/output/%s" % (directory, basename)
 
-        print "Transferring input file to instance"
-        sftp.put(local_input_file, input_file)
+    print "Transferring input file to instance: %s" % basename
+    sftp.put(local_input_file, input_file)
 
-        print "Start port forwarding"
-        server = SSHTunnelForwarder(
-            ssh_address=(instance.public_dns_name, PORT),
-            ssh_user=config.get('EC2', 'User'),
-            ssh_private_key=config.get('EC2', 'PrivateKeyFile'),
-            remote_bind_address=('127.0.0.1', PORT)
-        )
-        server.start()
+    print "Starting port forwarding"
+    server = SSHTunnelForwarder(
+        ssh_address=(instance.public_dns_name, PORT),
+        ssh_username=config.get('EC2', 'User'),
+        ssh_private_key=config.get('EC2', 'PrivateKeyFile'),
+        remote_bind_address=('127.0.0.1', PORT)
+    )
+    server.start()
 
-        transport = ssh.get_transport()
-        channel = transport.open_session()
+    transport = ssh.get_transport()
+    channel = transport.open_session()
 
 
-        binary = "%s/mumax3/%s" % (directory, config.get('EC2', 'MuMaxBinary'))
-        channel.exec_command("%s -http=:%i -o=%s %s" % (binary, PORT, output_dir, input_file))
+    binary = "%s/mumax3/%s" % (directory, config.get('EC2', 'MuMaxBinary'))
+    channel.exec_command("%s -http=:%i -o=%s %s" % (binary, PORT, output_dir, input_file))
 
-        #TODO: Test blocking ability
-        while True:
+    #TODO: Test blocking ability
+    while True:
+        try:
+            rl, wl, xl = select.select([channel], [], [], 0.0)
+            if len(rl) > 0:
+                print channel.recv(1024)
+        except KeyboardInterrupt:
+            print "Caught Ctrl-C"
+            channel.close()
+
             try:
-                rl, wl, xl = select.select([channel], [], [], 0.0)
-                if len(rl) > 0:
-                    print channel.recv(1024)
-            except KeyboardInterrupt:
-                print "Caught Ctrl-C"
-                channel.close()
+                # Try to kill the process
+                ssh.get_transport().open_session().exec_command(
+                    "kill -9 `ps -fu | grep mumax3 | grep -v grep | awk '{print $2}'`"
+                )
+            except:
+                pass
 
-                try:
-                    # Try to kill the process
-                    ssh.get_transport().open_session().exec_command(
-                        "kill -9 `ps -fu | grep mumax3 | grep -v grep | awk '{print $2}'`"
-                    )
-                except:
-                    pass
+            ssh.close()
 
-                ssh.close()
+    print "Receiving output files from instance"
+    sftp.chdir()
+    files = sftp.listdir()
+    for item in files:
+        sftp.get(files, local_data) #TODO: Actually implement file transfer
 
-        print "Receiving output files from instance"
-        sftp.chdir()
-        files = sftp.listdir()
-        for item in files:
-            sftp.get(files, local_data) #TODO: Actually implement file transfer
+    print "Stopping port forwarding"
+    server.stop()
 
-        print "Stopping port forwarding"
-        server.stop()
-
-        answer = raw_input("Terminate the instance? [Yn]: ")
+    answer = raw_input("Terminate the instance? [Yn]: ")
+    if len(answer) == 0 or answer.startswith(("Y", "y")):
+        terminate_instance(instance)
+    else:
+        instance.add_tag(__STATUS__, __READY__)
+        answer = raw_input("Stop the instance? [Yn]: ")
         if len(answer) == 0 or answer.startswith(("Y", "y")):
-            terminate_instance(instance)
+            stop_instance(instance)
         else:
-            instance.add_tag(__STATUS__, __READY__)
-            answer = raw_input("Stop the instance? [Yn]: ")
-            if len(answer) == 0 or answer.startswith(("Y", "y")):
-                stop_instance(instance)
-            else:
-                print "The instance has been left running"
+            print "The instance has been left running"
 
-    print "Mumax-ec2 has finished"
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print  "Usage: mumax-ec2.py name filename"
+    if len(sys.argv) < 2:
+        print  "Usage: mumax-ec2.py filename"
         sys.exit()
         
-    name     = sys.argv[1]
-    filename = sys.argv[2]
-    run(name, filename)
+    filename = os.path.realpath(sys.argv[1])
+    run(filename)
