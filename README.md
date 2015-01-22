@@ -54,9 +54,9 @@ Now you have a private key with which you can connect to your instance with SSH.
 17. From EC2, choose Security Groups > Create Security Group
 18. Set the security group name to "mumax-ec2", and update `config.ini` (`SecurityGroups`) with this name
 19. Add a description
-20. Inbound tab > Add Rule > Type: SSH
+20. Inbound tab > Add Rule > "Type: SSH"
 
-For the best security, choose Source: My IP. Note that if your IP changes, you will have to edit the security group again to update the IP. Alternatively Source: Anywhere can be used.
+For the best security, choose "Source: My IP". Note that if your IP changes, you will have to edit the security group again to update the IP. Alternatively "Source: Anywhere" can be used.
 
 21. Create the security group
 
