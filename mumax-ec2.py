@@ -10,6 +10,7 @@ __TAG__ = u'mumax-ec2'
 __STATUS__ = u'status'
 __READY__ = u'1'
 PORT = 35367
+__ON_AWS__ = "==================== AWS INSTANCE ===================="
 
 
 import boto.ec2
@@ -80,19 +81,6 @@ def get_ready_instance():
         return instance
 
 
-def stop_instance(instance):
-    """ Stops an AWS instance """
-    print "Stopping instance"
-    conn.stop_instances(instance_ids=[instance.id])
-
-
-def terminate_instance(instance):
-    """ Stops an AWS instance """
-    print "Terminating instance"
-    conn.terminate_instances(instance_ids=[instance.id])
-
-
-
 def run(local_input_file):
     """Run the mumax input file on a ready instance
     """
@@ -116,8 +104,8 @@ def run(local_input_file):
 
     basename = os.path.basename(local_input_file)
     directory = "/home/%s" % config.get('EC2', 'User')
-    input_file = "%s/input/%s" % (directory, basename)
-    output_dir = "%s/output/%s" % (directory, basename)
+    input_file = "%s/simulations/%s" % (directory, basename)
+    output_dir = "%s/simulations/%s" % (directory, basename.replace(".mx3", ".out"))
 
     print "Transferring input file to instance: %s" % basename
     sftp.put(local_input_file, input_file)
@@ -138,32 +126,46 @@ def run(local_input_file):
 
 
     binary = "%s/mumax3/%s" % (directory, config.get('EC2', 'MuMaxBinary'))
-    cmd = "%s -http=:%i -o=%s %s" % (binary, PORT, output_dir, input_file)
+    cmd = "source ./include_cuda && %s -f -http=:%i %s" % (binary, PORT, input_file)
+    print cmd
+    print __ON_AWS__
     channel.exec_command(cmd)
 
     #TODO: Test blocking ability
-    while not channel.exit_status_ready():
+    try:
+        while not channel.exit_status_ready():
+            if channel.recv_ready():
+                print channel.recv(1024), # ending comma to prevent newline
+        # Finish reading everything
+        while channel.recv_ready():
+            print channel.recv(1024), # ending comma to prevent newline
+
+    except KeyboardInterrupt:
+        print "Caught Ctrl-C"
+        channel.close()
+
         try:
-            rl, wl, xl = select.select([channel], [], [], 0.0)
-            if len(rl) > 0:
-                print channel.recv(1024)
-        except KeyboardInterrupt:
-            print "Caught Ctrl-C"
-            channel.close()
+            # Try to kill the process
+            ssh.get_transport().open_session().exec_command(
+                "kill -9 `ps -fu | grep mumax3 | grep -v grep | awk '{print $2}'`"
+            )
+        except:
+            pass
 
-            try:
-                # Try to kill the process
-                ssh.get_transport().open_session().exec_command(
-                    "kill -9 `ps -fu | grep mumax3 | grep -v grep | awk '{print $2}'`"
-                )
-            except:
-                pass
-
+    print __ON_AWS__
     print "Receiving output files from instance"
-    sftp.chdir()
+    local_output_dir = local_input_file.replace(".mx3", ".out")
+    if not os.path.isdir(local_output_dir):
+        os.mkdir(local_output_dir)
+    os.chdir(local_output_dir)
+    sftp.chdir(output_dir)
     files = sftp.listdir()
-    for item in files:
-        sftp.get(item, '.') #TODO: Actually implement file transfer
+    for f in files:
+        sftp.get(f, f)
+
+    print "Removing simulation files from instance"
+    sftp.remove(input_file)
+    ssh.exec_command("rm -r %s" % output_dir)
 
     print "Stopping port forwarding"
     server.stop()
@@ -172,12 +174,14 @@ def run(local_input_file):
 
     answer = raw_input("Terminate the instance? [Yn]: ")
     if len(answer) == 0 or answer.startswith(("Y", "y")):
-        terminate_instance(instance)
+        print "Terminating instance"
+        conn.terminate_instances(instance_ids=[instance.id])
     else:
         instance.add_tag(__STATUS__, __READY__)
         answer = raw_input("Stop the instance? [Yn]: ")
         if len(answer) == 0 or answer.startswith(("Y", "y")):
-            stop_instance(instance)
+            print "Stopping instance"
+            conn.stop_instances(instance_ids=[instance.id])
         else:
             print "The instance has been left running"
 
