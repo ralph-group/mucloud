@@ -141,7 +141,7 @@ def run(local_input_file):
             print channel.recv(1024), # ending comma to prevent newline
 
     except KeyboardInterrupt:
-        print "Caught Ctrl-C"
+        print "\nCaught Ctrl-C"
         channel.close()
 
         try:
