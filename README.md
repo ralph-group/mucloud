@@ -47,7 +47,7 @@ Now your "mumax-ec2" user has been created and has full permission to use EC2, w
 chmod 500 mumax-ec2.pem
 ```
 
-16. Update `config.ini` with the path to the private key (`PrivateKeyFile`)
+16. Update `config.ini` with the path of the `.pem` private key (`PrivateKeyFile`)
 
 Now you have a private key with which you can connect to your instance with SSH.
 
