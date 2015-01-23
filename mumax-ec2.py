@@ -91,6 +91,7 @@ def get_ready_instance():
             while instance.state != u'running':
                 sleep(10)
                 instance.update()
+            sleep(10)
             print "Instance %s is ready" % instance.id
             return instance
         else:
@@ -109,9 +110,8 @@ def run(local_input_file):
     instance = get_ready_instance()
     if instance == None: return None
 
-    instance.remove_tag(__STATUS__)
     try:
-        # Establish connection
+        print "Making secure connection to instance %s..." % instance.id
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(instance.public_dns_name, 
@@ -123,6 +123,7 @@ def run(local_input_file):
         print "Could not connect to remote server"
         return
 
+    instance.remove_tag(__STATUS__)
     basename = os.path.basename(local_input_file)
     directory = "/home/%s" % config.get('EC2', 'User')
     input_file = "%s/simulations/%s" % (directory, basename)
