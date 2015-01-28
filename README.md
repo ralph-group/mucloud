@@ -18,5 +18,5 @@ Requirements:
 ### Usage
 
 ```
-python mumax-ec2.py input_filename.mx3
+python mumax-ec2.py run input_filename.mx3
 ```
