@@ -34,6 +34,7 @@ PORT = 35367
 __ON_AWS__ = "==================== AWS INSTANCE ===================="
 
 
+import argparse
 import boto.ec2
 import paramiko
 import sys, os
@@ -52,15 +53,20 @@ conn = boto.ec2.connect_to_region(config.get('EC2', 'Region'),
             aws_access_key_id=config.get('EC2', 'AccessID'),
             aws_secret_access_key=config.get('EC2', 'SecretKey'))
             
-search_condition = lambda i: (
+mumax_ec2_condition = lambda i: (
     i.state == u'running' and 
-    __TAG__ in i.tags and 
+    __TAG__ in i.tags
+)
+
+ready_condition = lambda i: (
     __STATUS__ in i.tags and
     i.tags[__STATUS__] == __READY__
 )
 
 instances = conn.get_only_instances()
-ready_instances = [i for i in instances if search_condition(i)]
+ready_instances = [i for i in instances if (
+    mumax_ec2_condition(i) and ready_condition(i)
+)]
 
 
 def launch_instance():
@@ -103,9 +109,10 @@ def get_ready_instance():
         return instance
 
 
-def run(local_input_file):
+def run(args):
     """Run the mumax input file on a ready instance
     """
+    local_input_file = os.path.realpath(args.filename[0])
 
     instance = get_ready_instance()
     if instance == None: return None
@@ -208,11 +215,35 @@ def run(local_input_file):
             print "The instance has been left running"
 
 
+def list_instances(args):
+    mumax_ec2_instances = [i for i in instances if mumax_ec2_condition(i)]
+    if len(mumax_ec2_instances) > 0:
+        print "Current running instances:"
+        for instance in mumax_ec2_instances:
+            if mumax_ec2_condition(instance):
+                if ready_condition(instance):
+                    "Ready Instance: %s" % instance.id
+                else:
+                    "Running Instance: %s" % instance.id
+    else:
+        print "No instances currently running"
+
+
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print  "Usage: mumax-ec2.py filename"
-        sys.exit()
-        
-    filename = os.path.realpath(sys.argv[1])
-    run(filename)
+    parser = argparse.ArgumentParser(
+        description='Runs MuMax3 .mx3 files on Amazon Web Services (AWS) instances')
+    subparsers = parser.add_subparsers(help='sub-command help')
+
+    parser_run = subparsers.add_parser('run', help='run help')
+    parser_run.add_argument('filename', metavar='filename', type=str, nargs=1,
+        help='A .mx3 input file for MuMax3')
+    parser_run.set_defaults(func=run)
+
+
+    parser_list = subparsers.add_parser('list', help='list help')
+    parser_list.set_defaults(func=list_instances)
+
+    args = parser.parse_args()
+    print args
+    args.func(args)
