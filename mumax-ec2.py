@@ -64,9 +64,19 @@ ready_condition = lambda i: (
 )
 
 instances = conn.get_only_instances()
+mumax_ec2_instances = [i for i in instances if mumax_ec2_condition(i)]
 ready_instances = [i for i in instances if (
     mumax_ec2_condition(i) and ready_condition(i)
 )]
+
+
+def has_id(id):
+    """ Returns True if the ID is a valid mumax-ec2 instance
+    """
+    for instance in mumax_ec2_instances:
+        if instance.id == id:
+            return True
+    return False
 
 
 def launch_instance():
@@ -84,6 +94,17 @@ def launch_instance():
     return instance
 
 
+def wait_for_instance(instance, delay=10):
+    """ Waits for an instance to boot up
+    """
+    print "Waiting for instance %s to boot up..." % instance.id
+    while instance.state != u'running':
+        sleep(delay)
+        instance.update()
+    sleep(delay)
+    print "Instance %s is ready" % instance.id
+
+
 def get_ready_instance():
     """ Returns an instance from the ready list or launches 
     a new instance upon prompt
@@ -93,12 +114,7 @@ def get_ready_instance():
         answer = raw_input("Create a new instance for this job? [Yn]: ")
         if len(answer) == 0 or answer.startswith(("Y", "y")):
             instance = launch_instance()
-            print "Waiting for instance %s to boot up..." % instance.id
-            while instance.state != u'running':
-                sleep(10)
-                instance.update()
-            sleep(10)
-            print "Instance %s is ready" % instance.id
+            wait_for_instance()
             return instance
         else:
             print "No instance will be launched"
@@ -216,18 +232,38 @@ def run(args):
 
 
 def list_instances(args):
-    mumax_ec2_instances = [i for i in instances if mumax_ec2_condition(i)]
     if len(mumax_ec2_instances) > 0:
-        print "Current running instances:"
+        print "Mumax-ec2 Instances:"
         for instance in mumax_ec2_instances:
             if mumax_ec2_condition(instance):
                 if ready_condition(instance):
-                    "Ready Instance: %s" % instance.id
+                    print "    %s (ready)" % instance.id
                 else:
-                    "Running Instance: %s" % instance.id
+                    print "    %s (running)" % instance.id
     else:
-        print "No instances currently running"
+        print "No mumax-ec2 instances currently running"
 
+
+def _launch_instance(args):
+    instance = launch_instance()
+    if args.wait: 
+        wait_for_instance(instance)
+
+
+def terminate_instance(args):
+    if has_id(args.id[0]):
+        print "Terminating instance %s" % args.id[0]
+        conn.terminate_instances(instance_ids=args.id)
+    else:
+        print "AWS ID %s is not a valid mumax-ec2 instance" % args.id[0]
+
+
+def stop_instance(args):
+    if has_id(args.id[0]):
+        print "Stopping instance %s" % args.id[0]
+        conn.stop_instances(instance_ids=args.id)
+    else:
+        print "AWS ID %s is not a valid mumax-ec2 instance" % args.id[0]
 
 
 if __name__ == '__main__':
@@ -240,10 +276,22 @@ if __name__ == '__main__':
         help='A .mx3 input file for MuMax3')
     parser_run.set_defaults(func=run)
 
-
     parser_list = subparsers.add_parser('list', help='list help')
     parser_list.set_defaults(func=list_instances)
 
+    parser_launch = subparsers.add_parser('launch', help='launch help')
+    parser_launch.add_argument('--wait', action='store_true')
+    parser_launch.set_defaults(func=_launch_instance, wait=False)
+
+    parser_terminate = subparsers.add_parser('terminate', help='terminate help')
+    parser_terminate.add_argument('id', metavar='aws_id', type=str, nargs=1,
+        help='AWS ID of instance')
+    parser_terminate.set_defaults(func=terminate_instance)
+
+    parser_stop = subparsers.add_parser('stop', help='stop help')
+    parser_stop.add_argument('id', metavar='aws_id', type=str, nargs=1,
+        help='AWS ID of instance')
+    parser_stop.set_defaults(func=stop_instance)
+
     args = parser.parse_args()
-    print args
     args.func(args)
