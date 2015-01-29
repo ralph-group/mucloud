@@ -53,8 +53,11 @@ conn = boto.ec2.connect_to_region(config.get('EC2', 'Region'),
             aws_access_key_id=config.get('EC2', 'AccessID'),
             aws_secret_access_key=config.get('EC2', 'SecretKey'))
             
+up_condition = lambda i: (
+    i.state == u'running'
+)
+
 mumax_ec2_condition = lambda i: (
-    i.state == u'running' and 
     __TAG__ in i.tags
 )
 
@@ -70,12 +73,16 @@ ready_instances = [i for i in instances if (
 )]
 
 
-def has_id(id):
+def has_id(id, running=True):
     """ Returns True if the ID is a valid mumax-ec2 instance
+    and if it is running or not
     """
     for instance in mumax_ec2_instances:
         if instance.id == id:
-            return True
+            if up_condition(instance) == running:
+                return True
+            else:
+                return False
     return False
 
 
@@ -234,12 +241,17 @@ def run(args):
 def list_instances(args):
     if len(mumax_ec2_instances) > 0:
         print "Mumax-ec2 Instances:"
+        print "    ID\t\tIP\t\tStatus"
         for instance in mumax_ec2_instances:
             if mumax_ec2_condition(instance):
-                if ready_condition(instance):
-                    print "    %s (ready)" % instance.id
+                if up_condition(instance):
+                    if ready_condition(instance):
+                        status = "ready"
+                    else:
+                        status = "running"
                 else:
-                    print "    %s (running)" % instance.id
+                    status = "stopped"
+                print "    %s\t%s\t(%s)" % (instance.id, instance.ip_address, status)
     else:
         print "No mumax-ec2 instances currently running"
 
@@ -251,7 +263,7 @@ def _launch_instance(args):
 
 
 def terminate_instance(args):
-    if has_id(args.id[0]):
+    if has_id(args.id[0], running=True):
         print "Terminating instance %s" % args.id[0]
         conn.terminate_instances(instance_ids=args.id)
     else:
@@ -259,9 +271,22 @@ def terminate_instance(args):
 
 
 def stop_instance(args):
-    if has_id(args.id[0]):
+    if has_id(args.id[0], running=True):
         print "Stopping instance %s" % args.id[0]
         conn.stop_instances(instance_ids=args.id)
+    else:
+        print "AWS ID %s is not a valid mumax-ec2 instance" % args.id[0]
+
+
+def start_instance(args):
+    if has_id(args.id[0], running=False):
+        print "Starting instance %s" % args.id[0]
+        conn.start_instances(instance_ids=args.id)
+        if args.wait:
+            for instance in mumax_ec2_instances:
+                if instance.id == args.id[0]:
+                    break
+            wait_for_instance(instance) 
     else:
         print "AWS ID %s is not a valid mumax-ec2 instance" % args.id[0]
 
@@ -292,6 +317,12 @@ if __name__ == '__main__':
     parser_stop.add_argument('id', metavar='aws_id', type=str, nargs=1,
         help='AWS ID of instance')
     parser_stop.set_defaults(func=stop_instance)
+
+    parser_start = subparsers.add_parser('start', help='start help')
+    parser_start.add_argument('id', metavar='aws_id', type=str, nargs=1,
+        help='AWS ID of instance')
+    parser_start.add_argument('--wait', action='store_true')
+    parser_start.set_defaults(func=start_instance)
 
     args = parser.parse_args()
     args.func(args)
