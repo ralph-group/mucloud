@@ -121,7 +121,7 @@ def get_ready_instance():
         answer = raw_input("Create a new instance for this job? [Yn]: ")
         if len(answer) == 0 or answer.startswith(("Y", "y")):
             instance = launch_instance()
-            wait_for_instance()
+            wait_for_instance(instance)
             return instance
         else:
             print "No instance will be launched"
