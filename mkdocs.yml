@@ -1,0 +1,11 @@
+site_name: MuMax-EC2
+pages:
+- ['index.md', 'Introduction']
+- ['install_linux.md', 'Installing', 'Install on Linux']
+- ['install_mac.md', 'Installing', 'Install on MacOSX']
+- ['install_windows.md', 'Installing', 'Install on Windows']
+- ['setup_aws.md', 'Installing', 'Setting up AWS']
+- ['tutorial.md', 'Tutorial']
+- ['manual.md', 'Manual']
+- ['license.md', 'About', 'License']
+theme: flatly
