@@ -1,39 +1,63 @@
 ## Setting up AWS ##
 
-1. [Sign up](https://aws.amazon.com/) for an Amazon Web Services (AWS) account
-2. Open the [AWS Console](https://console.aws.amazon.com/console/)
-3. Choose IAM (Identity and Access Management) > Users > Create New Users
-4. Create a user "mumax-ec2" (leave "Generate access key for each user" checked)
-5. Show User Security Credentials
-6. Copy the "Access Key ID" into `config.ini` (`AccessID`)
-7. Copy the "Secret Access Key" into `config.ini` (`SecretKey`)
-8. Download Credentials and keep them in a safe place > Close
-9. Under Users > mumax-ec2, Attach User Policy
-10. Select "Amazon EC2 Full Access" and Apply Policy
+Instructions for setting up your Amazon Web Services (AWS) account to use with MuMax-EC2 are provided.
 
-    Now your "mumax-ec2" user has been created and has full permission to use EC2, without allowing access to any other AWS services for security reasons.
+### Making a user ###
 
-11. From the AWS Console, choose EC2
-12. Choose Key Pairs > Create Key Pair
-13. Create a key pair with name "mumax-ec2", and update `config.ini` (`PrivateKeyName`) with this name
-14. Download the `.pem` file and save it to a safe place
-15. On Linux or MacOSX change the permissions of the `.pem` file to prevent others from reading it
+Begin by [signing up](https://console.aws.amazon.com/console/home) for an Amazon Web Services account.
 
-    ```bash
-    chmod 500 mumax-ec2.pem
-    ```
+<img src="aws_1.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
 
-16. Update `config.ini` with the path of the `.pem` private key (`PrivateKeyFile`)
+After your account has been created, open the [AWS Console](https://console.aws.amazon.com/console/).
 
-    Now you have a private key with which you can connect to your instance with SSH.
+<img src="aws_2.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
 
-17. From EC2, choose Security Groups > Create Security Group
-18. Set the security group name to "mumax-ec2", and update `config.ini` (`SecurityGroups`) with this name
-19. Add a description
-20. Inbound tab > Add Rule > "Type: SSH"
+Choose IAM (Identity and Access Management) > Users > Create New Users.
 
-    For the best security, choose "Source: My IP". Note that if your IP changes, you will have to edit the security group again to update the IP. Alternatively "Source: Anywhere" can be used.
+<img src="aws_3.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
 
-21. Create the security group
+Create a user "mumax-ec2" (leave "Generate access key for each user" checked). Show the User Security Credentials, and copy the "Access Key ID" (`AccessID`) and "Secret Access Key" (`SecretKey`) into the MuMax-EC2 `config.ini` that came with the latest release. 
 
-Now you are ready to go!
+<img src="aws_4.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
+
+Download the credentials and keep them in a safe place. Close to return to the Users menu.
+
+Under Users > mumax-ec2, Attach User Policy.
+
+<img src="aws_5.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
+
+Search and select "AmazonEC2FullAccess". Attach this policy to the "mumax-ec2" user.
+
+<img src="aws_6.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
+
+> Now your "mumax-ec2" user has been created and has full permission to use EC2, without allowing access to any other AWS services for security reasons.
+
+### Getting a private key ###
+
+From the AWS Console, open up EC2.
+
+<img src="aws_2.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
+
+Choose Key Pairs > Create Key Pair. Create a key pair with name "mumax-ec2", and update `config.ini` (`PrivateKeyName`) with this name.
+
+<img src="aws_7.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
+
+Download the `.pem` file and save it to a safe place. On Linux and MacOSX change the permissions of the `.pem` file to prevent others from reading it.
+
+```bash
+chmod 500 mumax-ec2.pem
+```
+
+Update `config.ini` with the path of the `.pem` private key (`PrivateKeyFile`). Now you have a private key with which you can connect to your instance with SSH.
+
+### Creating a security group ###
+
+From EC2, choose Security Groups > Create Security Group.
+
+<img src="aws_8.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
+
+Set the security group name to "mumax-ec2", and update `config.ini` (`SecurityGroups`) with this name. A description is required by AWS. On the Inbound tab > Add Rule > "Type: SSH".
+
+> For the best security, choose "Source: My IP". Note that if your IP changes, you will have to edit the security group again to update the IP. Alternatively "Source: Anywhere" can be used.
+
+After you create the security group, your AWS account has been set up properly and your `config.ini` file has been updated. The next step is to start using MuMax-EC2, or [follow the tutorial](tutorial.md) to get started.
