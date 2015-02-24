@@ -69,7 +69,7 @@ ready_condition = lambda i: (
 instances = conn.get_only_instances()
 mumax_ec2_instances = [i for i in instances if mumax_ec2_condition(i)]
 ready_instances = [i for i in instances if (
-    mumax_ec2_condition(i) and ready_condition(i)
+    mumax_ec2_condition(i) and ready_condition(i) and up_condition(i)
 )]
 
 
