@@ -205,6 +205,9 @@ def run(args):
             pass
 
     print __ON_AWS__
+    print "Stopping port forwarding"
+    server.stop()
+
     print "Receiving output files from instance"
     local_output_dir = local_input_file.replace(".mx3", ".out")
     if not os.path.isdir(local_output_dir):
@@ -218,9 +221,6 @@ def run(args):
     print "Removing simulation files from instance"
     sftp.remove(input_file)
     ssh.exec_command("rm -r %s" % output_dir)
-
-    print "Stopping port forwarding"
-    server.stop()
 
     ssh.close()
 
