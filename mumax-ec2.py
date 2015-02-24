@@ -58,7 +58,8 @@ up_condition = lambda i: (
 )
 
 mumax_ec2_condition = lambda i: (
-    __TAG__ in i.tags
+    __TAG__ in i.tags and
+    i.state != u'terminated'
 )
 
 ready_condition = lambda i: (
