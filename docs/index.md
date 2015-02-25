@@ -42,8 +42,8 @@ MuMax-EC2 requires an AWS account and Python 2.7. Instructions for setting up an
 
 ## Usage ##
 
-A [full tutorial](tutorial.md) is provided to get you started.
+A [full tutorial](tutorial.md) is provided to get you started. 
 
-```bash
-python mumax-ec2.py run input_filename.mx3
-```
+Below is an example of running Standard Problem 4 with MuMax-EC2 on a Windows machine.
+
+<img src="standard_problem_4.gif" />
