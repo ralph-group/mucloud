@@ -7,6 +7,8 @@ Download the latest release of [Python 2.7](https://www.python.org/downloads/) (
 
 In the Python 2.7 installer, under "Customize Python 2.7", ensure "Add python.exe to path" is included.
 
+<img src="windows_1.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
+
 Download and install the [Microsoft Visual C++ Compiler for Python 2.7](http://www.microsoft.com/en-in/download/confirmation.aspx?id=44266). This allows the Python pip installer to compile required C/C++ code that is included in some Python packages.
 
 Restart your computer.
@@ -16,6 +18,8 @@ Open the command prompt (cmd) and verify that Python is installed properly.
 ```dos
 python
 ```
+
+<img src="windows_2.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
 
 To exit the Python interpreter type `exit()`.
 
