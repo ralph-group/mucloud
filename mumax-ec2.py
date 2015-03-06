@@ -80,7 +80,9 @@ def has_id(id, running=True):
     """
     for instance in mumax_ec2_instances:
         if instance.id == id:
-            if up_condition(instance) == running:
+            if running == None:
+                return True
+            elif up_condition(instance) == running:
                 return True
             else:
                 return False
@@ -272,7 +274,7 @@ def _launch_instance(args):
 
 
 def terminate_instance(args):
-    if has_id(args.id[0], running=True):
+    if has_id(args.id[0], running=None):
         instance = instance_by_id(args.id[0])
         # Toggle on delete on termination
         devices = ["%s=1" % dev for dev, bd in instance.block_device_mapping.items()]
