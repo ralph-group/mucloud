@@ -87,6 +87,14 @@ def has_id(id, running=True):
     return False
 
 
+def instance_by_id(id):
+    """ Returns an instance object based on an id
+    """
+    for instance in mumax_ec2_instances:
+        if instance.id == id:
+            return instance
+
+
 def launch_instance():
     """ Launch a new AWS instance """
     print "Creating a new instance of %s" % config.get('EC2', 'Image')
@@ -265,6 +273,10 @@ def _launch_instance(args):
 
 def terminate_instance(args):
     if has_id(args.id[0], running=True):
+        instance = instance_by_id(args.id[0])
+        # Toggle on delete on termination
+        devices = ["%s=1" % dev for dev, bd in instance.block_device_mapping.items()]
+        instance.modify_attribute('BlockDeviceMapping', devices)
         print "Terminating instance %s" % args.id[0]
         conn.terminate_instances(instance_ids=args.id)
     else:
