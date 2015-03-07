@@ -74,73 +74,121 @@ ready_instances = [i for i in instances if (
 )]
 
 
-def has_id(id, running=True):
-    """ Returns True if the ID is a valid mumax-ec2 instance
-    and if it is running or not
-    """
-    for instance in mumax_ec2_instances:
-        if instance.id == id:
-            if running == None:
-                return True
-            elif up_condition(instance) == running:
-                return True
-            else:
-                return False
-    return False
+class Instance(object):
 
+    def __init__(self, aws_instance):
+        self._instance = aws_instance
 
-def instance_by_id(id):
-    """ Returns an instance object based on an id
-    """
-    for instance in mumax_ec2_instances:
-        if instance.id == id:
-            return instance
+    def start():
+        pass
 
+    def stop():
+        pass
 
-def launch_instance():
-    """ Launch a new AWS instance """
-    print "Creating a new instance of %s" % config.get('EC2', 'Image')
-    reservation = conn.run_instances(
-        config.get('EC2', 'Image'),
-        key_name=config.get('EC2', 'PrivateKeyName'),
-        instance_type=config.get('EC2', 'InstanceType'),
-        security_groups=config.get('EC2', 'SecurityGroups').split(',')
-    )
-    instance = reservation.instances[0]
-    instance.add_tag(__TAG__, __version__)
-    instance.add_tag(__STATUS__, __READY__)
-    return instance
+    def terminate():
+        pass
 
+    def is_up():
+        pass
 
-def wait_for_instance(instance, delay=10):
-    """ Waits for an instance to boot up
-    """
-    print "Waiting for instance %s to boot up..." % instance.id
-    while instance.state != u'running':
+    def is_ready():
+        pass
+
+    def wait_for_boot():
+        """ Waits for an instance to boot up
+        """
+        print "Waiting for instance %s to boot up..." % instance.id
+        while instance.state != u'running':
+            sleep(delay)
+            instance.update()
         sleep(delay)
-        instance.update()
-    sleep(delay)
-    print "Instance %s is ready" % instance.id
-
-
-def get_ready_instance():
-    """ Returns an instance from the ready list or launches 
-    a new instance upon prompt
-    """
-    if len(ready_instances) == 0:
-        print "There are no instances waiting to be used."
-        answer = raw_input("Create a new instance for this job? [Yn]: ")
-        if len(answer) == 0 or answer.startswith(("Y", "y")):
-            instance = launch_instance()
-            wait_for_instance(instance)
-            return instance
-        else:
-            print "No instance will be launched"
-            return None
-    else:
-        instance = ready_instances[0] # Select the 1st ready instance
         print "Instance %s is ready" % instance.id
+
+
+    def run():
+        pass
+
+    def add_tags():
+        pass
+
+    @property
+    def ip(self):
+        return self._ip
+
+    @staticmethod
+    def has_mumax(aws_instance):
+        pass
+
+
+
+class MuMaxInstances(object):
+
+    def __init__(self, connection):
+        self.connection = connection
+
+
+    def has_id(id, running=True):
+        """ Returns True if the ID is a valid mumax-ec2 instance
+        and if it is running or not
+        """
+        for instance in self.instances:
+            if instance.id == id:
+                if running == None:
+                    return True
+                elif up_condition(instance) == running:
+                    return True
+                else:
+                    return False
+        return False
+
+
+    def by_id(id):
+        """ Returns an instance object based on an id
+        """
+        for instance in mumax_ec2_instances:
+            if instance.id == id:
+                return instance
+
+
+    def launch():
+        """ Launch a new AWS instance """
+        print "Creating a new instance of %s" % config.get('EC2', 'Image')
+        reservation = conn.run_instances(
+            config.get('EC2', 'Image'),
+            key_name=config.get('EC2', 'PrivateKeyName'),
+            instance_type=config.get('EC2', 'InstanceType'),
+            security_groups=config.get('EC2', 'SecurityGroups').split(',')
+        )
+        instance = reservation.instances[0]
+        instance.add_tag(__TAG__, __version__)
+        instance.add_tag(__STATUS__, __READY__)
         return instance
+
+
+    def ready_instance():
+        """ Returns an instance from the ready list or launches 
+        a new instance upon prompt
+        """
+        if len(ready_instances) == 0:
+            print "There are no instances waiting to be used."
+            answer = raw_input("Create a new instance for this job? [Yn]: ")
+            if len(answer) == 0 or answer.startswith(("Y", "y")):
+                instance = launch_instance()
+                wait_for_instance(instance)
+                return instance
+            else:
+                print "No instance will be launched"
+                return None
+        else:
+            instance = ready_instances[0] # Select the 1st ready instance
+            print "Instance %s is ready" % instance.id
+            return instance
+
+
+
+
+
+
 
 
 def run(args):
