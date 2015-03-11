@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 
-This file is part of the mumax-ec2 package.
+This file is part of the MuMax-EC2 package.
 
 Copyright (c) 2014-2015 Colin Jermain, Graham Rowlands
 
@@ -25,16 +25,11 @@ THE SOFTWARE.
 
 """
 
-__version__ = 1.0
-
-__TAG__ = u'mumax-ec2'
-__STATUS__ = u'status'
-__READY__ = u'1'
-PORT = 35367
+__version__ = 1.1
 __ON_AWS__ = "==================== AWS INSTANCE ===================="
+PORT = 35367
 
 
-import argparse
 import boto.ec2
 import paramiko
 import sys, os
@@ -42,36 +37,27 @@ from time import sleep
 import select
 from sshtunnel import SSHTunnelForwarder
 
-
-# Start the config parser
+import argparse
 import ConfigParser
 config = ConfigParser.ConfigParser()
 config.read(os.path.dirname(os.path.realpath(__file__))+"/config.ini")
 
 # Connect to Amazon Web Services (AWS)
-conn = boto.ec2.connect_to_region(config.get('EC2', 'Region'),
-            aws_access_key_id=config.get('EC2', 'AccessID'),
-            aws_secret_access_key=config.get('EC2', 'SecretKey'))
-            
-up_condition = lambda i: (
-    i.state == u'running'
+aws = boto.ec2.connect_to_region(
+    config.get('EC2', 'Region'),
+    aws_access_key_id=config.get('EC2', 'AccessID'),
+    aws_secret_access_key=config.get('EC2', 'SecretKey')
 )
 
-mumax_ec2_condition = lambda i: (
-    __TAG__ in i.tags and
-    i.state != u'terminated'
-)
-
-ready_condition = lambda i: (
-    __STATUS__ in i.tags and
-    i.tags[__STATUS__] == __READY__
-)
-
-instances = conn.get_only_instances()
-mumax_ec2_instances = [i for i in instances if mumax_ec2_condition(i)]
-ready_instances = [i for i in instances if (
-    mumax_ec2_condition(i) and ready_condition(i) and up_condition(i)
-)]
+def rexists(sftp, path):
+    try:
+        sftp.stat(path)
+    except IOError, e:
+        if e[0] == 2:
+            return False
+        raise
+    else:
+        return True
 
 
 class Instance(object):
@@ -79,56 +65,266 @@ class Instance(object):
     def __init__(self, aws_instance):
         self._instance = aws_instance
 
-    def start():
-        pass
 
-    def stop():
-        pass
+    def start(self):
+        aws.start_instances(instance_ids=instance.id)
+        self.add_ready_tags()
 
-    def terminate():
-        pass
 
-    def is_up():
-        pass
+    def add_ready_tags(self):
+        self._instance.add_tag('mumax-ec2', __version__)
+        self._instance.add_tag('status', 'ready')
 
-    def is_ready():
-        pass
 
-    def wait_for_boot():
-        """ Waits for an instance to boot up
-        """
-        print "Waiting for instance %s to boot up..." % instance.id
-        while instance.state != u'running':
+    def stop(self):
+        self._instance.add_tag('status', 'stopped')
+        aws.stop_instances(instance_ids=[self.id])
+
+
+    def terminate(self):
+        self._instance.add_tag('status', 'terminated')
+        # Toggle on delete on termination
+        devices = ["%s=1" % dev for dev, bd in self._instance.block_device_mapping.items()]
+        self._instance.modify_attribute('BlockDeviceMapping', devices)
+        aws.terminate_instances(instance_ids=[self.id])
+
+
+    def is_up(self):
+        return self._instance.state == u'running'
+
+
+    def is_ready(self):
+        return ('status' in self._instance.tags and
+            self._instance.tags['status'] == 'ready')
+
+
+    def is_running(self):
+        return ('status' in self._instance.tags and
+            self._instance.tags['status'] == 'running')
+
+
+    def wait_for_boot(self):
+        """ Waits for an instance to boot up """
+        while not self.is_up():
             sleep(delay)
-            instance.update()
+            self._instance.update()
         sleep(delay)
-        print "Instance %s is ready" % instance.id
 
 
-    def run():
+    def run(self, raw_input_file, port=PORT):
+        """ Run the mumax input file on a ready instance """
+
+        if not self.is_ready():
+            raise Exception("The instance %s is not ready to be run" % repr(self))
+
+        # Determine file paths
+        local_input_file = os.path.realpath(raw_input_file)
+        local_output_dir = local_input_file.replace(".mx3", ".out")
+
+        basename = os.path.basename(local_input_file)
+        directory = "/home/%s" % config.get('EC2', 'User')
+        input_file = "%s/simulations/%s" % (directory, basename)
+        output_dir = "%s/simulations/%s" % (directory, basename.replace(".mx3", ".out"))
+
+        self._instance.add_tags({
+            'local_input_file': local_input_file,
+            'local_output_dir': local_output_dir,
+            'input_file': input_file,
+            'output_dir': output_dir,
+            'port': port,
+        })
+
+        try:
+            print "Making secure connection to instance %s..." % self.id
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(self.ip, 
+                username=config.get('EC2', 'User'),
+                key_filename=config.get('EC2', 'PrivateKeyFile')
+            )
+            sftp = ssh.open_sftp()
+        except:
+            print "Could not connect to remote server"
+            return
+
+        self._instance.remove_tag('status')
+        self._instance.add_tag('status', 'running')
+
+        print "Transferring input file to instance: %s" % basename
+        sftp.put(local_input_file, input_file)
+
+        print "Starting port forwarding"
+        self.port_forward(port)
+
+        transport = ssh.get_transport()
+        channel = transport.open_session()
+        read_channel = transport.open_session()
+
+        cmd = "source ./run_mumax3 %s %s" % (port, input_file)
+        print cmd
+        print __ON_AWS__
+        channel.exec_command(cmd)
+        sleep(0.5)
+        
+        try:
+            f = sftp.open(directory + '/log.txt', 'r')
+            while not rexists(sftp, directory + '/finished'):
+                data = f.read()
+                if data != "":
+                    print data, # ending comma to prevent newline
+            print f.read(),
+
+        except KeyboardInterrupt:
+            print "\nCaught Ctrl-C"
+            channel.close()
+
+            try:
+                # Try to kill the process
+                ssh.get_transport().open_session().exec_command(
+                    "kill -9 `ps -fu | grep mumax3 | grep -v grep | awk '{print $2}'`"
+                )
+            except:
+                pass
+
+        #sftp.remove(directory + '/log.txt')
+        sftp.remove(directory + '/finished')
+
+        print __ON_AWS__
+        print "Stopping port forwarding"
+        self.stop_port_forward()
+
+        self.clean(ssh, sftp)
+
+        answer = raw_input("Terminate the instance? [Yn]: ")
+        if len(answer) == 0 or answer.startswith(("Y", "y")):
+            print "Terminating instance"
+            self.terminate()
+        else:
+            self._instance.add_tag('status', 'ready')
+            answer = raw_input("Stop the instance? [Yn]: ")
+            if len(answer) == 0 or answer.startswith(("Y", "y")):
+                print "Stopping instance"
+                self.stop()
+            else:
+                print "The instance has been left running"
+
+
+    def clean(self, ssh, sftp):
+        local_input_file = self._instance.tags['local_input_file']
+        local_output_dir = self._instance.tags['local_output_dir']
+        input_file = self._instance.tags['input_file']
+        output_dir = self._instance.tags['output_dir']
+
+        print "Receiving output files from instance"
+        if not os.path.isdir(local_output_dir):
+            os.mkdir(local_output_dir)
+        os.chdir(local_output_dir)
+        sftp.chdir(output_dir)
+        files = sftp.listdir()
+        for f in files:
+            sftp.get(f, f)
+
+        print "Removing simulation files from instance"
+        sftp.remove(input_file)
+        ssh.exec_command("rm -r %s" % output_dir)
+
+        ssh.close()
+
+        # Remove tags
+        self._instance.remove_tags({
+            'local_input_file': None,
+            'local_output_dir': None,
+            'input_file': None,
+            'output_dir': None,
+            'port': None,
+        })
+
+        self._instance.add_tag('status', 'ready')
+
+
+
+    def reconnect(self):
+        # Get the file paths from the tags
+        local_input_file = self._instance.tags['local_input_file']
+        local_output_dir = self._instance.tags['local_output_dir']
+        input_file = self._instance.tags['input_file']
+        output_dir = self._instance.tags['output_dir']
+
+
+    def port_forward(self, port=PORT):
+        key = paramiko.RSAKey.from_private_key_file(
+            config.get('EC2', 'PrivateKeyFile')
+        )
+        self._forward = SSHTunnelForwarder(
+            ssh_address=(self.ip, 22),
+            ssh_username=config.get('EC2', 'User'),
+            ssh_private_key=key,
+            remote_bind_address=('127.0.0.1', PORT),
+            local_bind_address=('127.0.0.1', PORT)
+        )
+        self._forward.start()
+
+
+    def stop_port_forward(self):
+        self._forward.stop()
+
+
+    def halt(self):
         pass
 
-    def add_tags():
+
+    def kill(self):
         pass
+
 
     @property
     def ip(self):
-        return self._ip
+        return self._instance.ip_address
+
+
+    @property
+    def id(self):
+        return self._instance.id
+
+
+    @property
+    def tags(self):
+        return self._instance.tags
+        
 
     @staticmethod
     def has_mumax(aws_instance):
-        pass
+        return ('status' in aws_instance.tags and
+            aws_instance.state != u'terminated')
+
+    @staticmethod
+    def launch():
+        """ Launch a new AWS instance """
+        reservation = aws.run_instances(
+            config.get('EC2', 'Image'),
+            key_name=config.get('EC2', 'PrivateKeyName'),
+            instance_type=config.get('EC2', 'InstanceType'),
+            security_groups=config.get('EC2', 'SecurityGroups').split(',')
+        )
+        instance = Instance(reservation.instances[0])
+        instance.add_ready_tags()
+        return instance
+
+
+    def __repr__(self):
+        return "<MuMax-EC2 Instance(id='%s')>" % self.id
 
 
 
-class MuMaxInstances(object):
+class InstanceGroup(object):
 
-    def __init__(self, connection):
-        self.connection = connection
+    def __init__(self):
+        all_instances = aws.get_only_instances()
+        self.instances = [Instance(i) for i in all_instances if Instance.has_mumax(i)]
 
 
     def has_id(id, running=True):
-        """ Returns True if the ID is a valid mumax-ec2 instance
+        """ Returns True if the ID is a valid MuMax-EC2 instance
         and if it is running or not
         """
         for instance in self.instances:
@@ -148,30 +344,17 @@ class MuMaxInstances(object):
         for instance in mumax_ec2_instances:
             if instance.id == id:
                 return instance
+        return None
 
 
-    def launch():
-        """ Launch a new AWS instance """
-        print "Creating a new instance of %s" % config.get('EC2', 'Image')
-        reservation = conn.run_instances(
-            config.get('EC2', 'Image'),
-            key_name=config.get('EC2', 'PrivateKeyName'),
-            instance_type=config.get('EC2', 'InstanceType'),
-            security_groups=config.get('EC2', 'SecurityGroups').split(',')
-        )
-        instance = reservation.instances[0]
-        instance.add_tag(__TAG__, __version__)
-        instance.add_tag(__STATUS__, __READY__)
-        return instance
-
-
-    def ready_instance():
+    def ready_instance(self):
         """ Returns an instance from the ready list or launches 
         a new instance upon prompt
         """
+        ready_instances = [i for i in self.instances if i.is_ready()]
         if len(ready_instances) == 0:
             print "There are no instances waiting to be used."
-            answer = raw_input("Create a new instance for this job? [Yn]: ")
+            answer = raw_input("Create a new instance for this simulation? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
                 instance = launch_instance()
                 wait_for_instance(instance)
@@ -192,166 +375,106 @@ class MuMaxInstances(object):
 
 
 def run(args):
-    """Run the mumax input file on a ready instance
-    """
-    local_input_file = os.path.realpath(args.filename[0])
-
-    instance = get_ready_instance()
-    if instance == None: return None
-
-    try:
-        print "Making secure connection to instance %s..." % instance.id
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(instance.public_dns_name, 
-            username=config.get('EC2', 'User'), 
-            key_filename=config.get('EC2', 'PrivateKeyFile')
-        )
-        sftp = ssh.open_sftp()
-    except:
-        print "Could not connect to remote server"
-        return
-
-    instance.remove_tag(__STATUS__)
-    basename = os.path.basename(local_input_file)
-    directory = "/home/%s" % config.get('EC2', 'User')
-    input_file = "%s/simulations/%s" % (directory, basename)
-    output_dir = "%s/simulations/%s" % (directory, basename.replace(".mx3", ".out"))
-
-    print "Transferring input file to instance: %s" % basename
-    sftp.put(local_input_file, input_file)
-
-    print "Starting port forwarding"
-    mykey = paramiko.RSAKey.from_private_key_file(config.get('EC2', 'PrivateKeyFile'))
-    server = SSHTunnelForwarder(
-        ssh_address=(instance.public_dns_name, 22),
-        ssh_username=config.get('EC2', 'User'),
-        ssh_private_key=mykey,
-        remote_bind_address=('127.0.0.1', PORT),
-        local_bind_address=('127.0.0.1', PORT)
-    )
-    server.start()
-
-    transport = ssh.get_transport()
-    channel = transport.open_session()
+    group = InstanceGroup()
+    instance = group.ready_instance()
+    if instance is not None:
+        instance.run(args.filename[0])
 
 
-    binary = "%s/mumax3/%s" % (directory, config.get('EC2', 'MuMaxBinary'))
-    cmd = "source ./include_cuda && %s -f -http=:%i %s" % (binary, PORT, input_file)
-    print cmd
-    print __ON_AWS__
-    channel.exec_command(cmd)
-
-    #TODO: Test blocking ability
-    try:
-        while not channel.exit_status_ready():
-            if channel.recv_ready():
-                print channel.recv(1024), # ending comma to prevent newline
-        # Finish reading everything
-        while channel.recv_ready():
-            print channel.recv(1024), # ending comma to prevent newline
-
-    except KeyboardInterrupt:
-        print "\nCaught Ctrl-C"
-        channel.close()
-
-        try:
-            # Try to kill the process
-            ssh.get_transport().open_session().exec_command(
-                "kill -9 `ps -fu | grep mumax3 | grep -v grep | awk '{print $2}'`"
-            )
-        except:
-            pass
-
-    print __ON_AWS__
-    print "Stopping port forwarding"
-    server.stop()
-
-    print "Receiving output files from instance"
-    local_output_dir = local_input_file.replace(".mx3", ".out")
-    if not os.path.isdir(local_output_dir):
-        os.mkdir(local_output_dir)
-    os.chdir(local_output_dir)
-    sftp.chdir(output_dir)
-    files = sftp.listdir()
-    for f in files:
-        sftp.get(f, f)
-
-    print "Removing simulation files from instance"
-    sftp.remove(input_file)
-    ssh.exec_command("rm -r %s" % output_dir)
-
-    ssh.close()
-
-    answer = raw_input("Terminate the instance? [Yn]: ")
-    if len(answer) == 0 or answer.startswith(("Y", "y")):
-        print "Terminating instance"
-        conn.terminate_instances(instance_ids=[instance.id])
-    else:
-        instance.add_tag(__STATUS__, __READY__)
-        answer = raw_input("Stop the instance? [Yn]: ")
-        if len(answer) == 0 or answer.startswith(("Y", "y")):
-            print "Stopping instance"
-            conn.stop_instances(instance_ids=[instance.id])
+def reconnect(args):
+    group = InstanceGroup()
+    instance = group.by_id(args.id[0])
+    if instance is not None:
+        if instance.is_running():
+            instance.reconnect()
         else:
-            print "The instance has been left running"
+            print "AWS ID %s is not running" % args.id[0]
+    else:
+        print "AWS ID %s is not a valid MuMax-EC2 instance" % args.id[0]
 
 
 def list_instances(args):
-    if len(mumax_ec2_instances) > 0:
-        print "Mumax-ec2 Instances:"
-        print "    ID\t\tIP\t\tStatus"
-        for instance in mumax_ec2_instances:
-            if mumax_ec2_condition(instance):
-                if up_condition(instance):
-                    if ready_condition(instance):
-                        status = "ready"
-                    else:
-                        status = "running"
-                else:
-                    status = "stopped"
-                print "    %s\t%s\t(%s)" % (instance.id, instance.ip_address, status)
+    group = InstanceGroup()
+    instances = group.instances
+    if len(instances) > 0:
+        print "MuMax-EC2 Instances:"
+        print "    ID\t\tIP\t\tStatus\t\tPort\t\tUp time (sec)"
+        for instance in instances:
+            if instance.is_running():
+                status = 'running'
+            elif instance.is_ready():
+                status = 'ready'
+            elif instance.is_up():
+                status = 'starting'
+            else:
+                status = 'stopped'
+            if 'port' in instance.tags:
+                port = instance.tags['port']
+            else:
+                port = ''
+            print "    %s\t%s\t(%s)\t%s" % (instance.id, instance.ip, status, port)
+
     else:
-        print "No mumax-ec2 instances currently running"
+        print "No MuMax-EC2 instances currently running"
 
 
-def _launch_instance(args):
-    instance = launch_instance()
-    if args.wait: 
-        wait_for_instance(instance)
+def launch_instance(args):
+    print "Creating a new instance of %s" % config.get('EC2', 'Image')
+    instance = Instance.launch()
+    if args.wait:
+        instance.wait_for_boot()
 
 
 def terminate_instance(args):
-    if has_id(args.id[0], running=None):
-        instance = instance_by_id(args.id[0])
-        # Toggle on delete on termination
-        devices = ["%s=1" % dev for dev, bd in instance.block_device_mapping.items()]
-        instance.modify_attribute('BlockDeviceMapping', devices)
-        print "Terminating instance %s" % args.id[0]
-        conn.terminate_instances(instance_ids=args.id)
+    group = InstanceGroup()
+    instance = group.by_id(args.id[0])
+    if instance is not None:
+        if instance.is_running():
+            print "This instance is currently running."
+            answer = raw_input("Proceed to terminate the instance? [Yn]: ")
+            if len(answer) == 0 or answer.startswith(("Y", "y")):
+                instance.halt()
+                instance.clean()
+            else:
+                return
+        print "Terminating instance %s" % instance.id
+        instance.terminate()
     else:
-        print "AWS ID %s is not a valid mumax-ec2 instance" % args.id[0]
+        print "AWS ID %s is not a valid MuMax-EC2 instance" % args.id[0]
 
 
 def stop_instance(args):
-    if has_id(args.id[0], running=True):
-        print "Stopping instance %s" % args.id[0]
-        conn.stop_instances(instance_ids=args.id)
+    group = InstanceGroup()
+    instance = group.by_id(args.id[0])
+    if instance is not None:
+        if instance.is_running():
+            print "This instance is currently running."
+            answer = raw_input("Proceed to stop the instance? [Yn]: ")
+            if len(answer) == 0 or answer.startswith(("Y", "y")):
+                instance.halt()
+                instance.clean()
+            else:
+                return
+        print "Stopping instance %s" % instance.id
+        instance.stop()
     else:
-        print "AWS ID %s is not a valid mumax-ec2 instance" % args.id[0]
+        print "AWS ID %s is not a valid MuMax-EC2 instance" % args.id[0]
 
 
 def start_instance(args):
-    if has_id(args.id[0], running=False):
-        print "Starting instance %s" % args.id[0]
-        conn.start_instances(instance_ids=args.id)
-        if args.wait:
-            for instance in mumax_ec2_instances:
-                if instance.id == args.id[0]:
-                    break
-            wait_for_instance(instance) 
+    group = InstanceGroup()
+    instance = group.by_id(args.id[0])
+    if instance is not None:
+        if not instance.is_up():
+            print "Starting instance %s" % instance.id
+            instance.start()
+            if args.wait:
+                print "Waiting for instance to boot..."
+                instance.wait_for_boot()
+        else:
+            print "AWS ID %s is already up"
     else:
-        print "AWS ID %s is not a valid mumax-ec2 instance" % args.id[0]
+        print "AWS ID %s is not a valid MuMax-EC2 instance" % args.id[0]
 
 
 if __name__ == '__main__':
@@ -369,7 +492,7 @@ if __name__ == '__main__':
 
     parser_launch = subparsers.add_parser('launch', help='launch help')
     parser_launch.add_argument('--wait', action='store_true')
-    parser_launch.set_defaults(func=_launch_instance, wait=False)
+    parser_launch.set_defaults(func=launch_instance, wait=False)
 
     parser_terminate = subparsers.add_parser('terminate', help='terminate help')
     parser_terminate.add_argument('id', metavar='aws_id', type=str, nargs=1,
