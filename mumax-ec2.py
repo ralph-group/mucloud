@@ -76,16 +76,13 @@ class Instance(object):
 
     def add_ready_tags(self):
         self._instance.add_tag('mumax-ec2', __version__)
-        self._instance.add_tag('status', 'ready')
 
 
     def stop(self):
-        self._instance.add_tag('status', 'stopped')
         aws.stop_instances(instance_ids=[self.id])
 
 
     def terminate(self):
-        self._instance.add_tag('status', 'terminated')
         # Toggle on delete on termination
         devices = ["%s=1" % dev for dev, bd in self._instance.block_device_mapping.items()]
         self._instance.modify_attribute('BlockDeviceMapping', devices)
@@ -97,16 +94,14 @@ class Instance(object):
 
 
     def is_ready(self):
-        return ('status' in self.tags and
-            self.tags['status'] == 'ready')
+        return self.state == u'ready'
 
 
-    def is_running(self):
-        return ('status' in self.tags and
-            self.tags['status'] == 'running')
+    def is_simulating(self):
+        return self.state == u'simulating'
 
 
-    def wait_for_boot(self, delay=1):
+    def wait_for_boot(self, delay=10):
         """ Waits for an instance to boot up """
         print "Waiting for instance to boot..."
         while not self.is_up():
@@ -159,9 +154,7 @@ class Instance(object):
             # Determine file paths
             paths = self.paths(local_input_file)
 
-            self._instance.remove_tag('status')
             self._instance.add_tags({
-                'status': 'running',
                 'local_input_file': local_input_file,
                 'port': port,
             })
@@ -174,6 +167,7 @@ class Instance(object):
 
             # Starting screen
             ssh.exec_command("screen -dmS %s" % SCREEN)
+            sleep(0.5)
 
             cmd = "source ./run_mumax3 %s %s" % (port, paths['input_file'])
             print "Running %s on MuMax3" % paths['basename']
@@ -181,7 +175,7 @@ class Instance(object):
 
         except KeyboardInterrupt:
             print "\n\nCanceling simulation on keyboard interrupt"
-            self.partial_clean(ssh, sftp)
+            self.clean(ssh, sftp)
             return
 
         disconnect = self.wait_for_simulation(ssh, sftp)
@@ -208,7 +202,9 @@ class Instance(object):
 
         try:
             print MUMAX_OUTPUT
-            sleep(0.5)
+
+            while not rexists(sftp, paths['log']):
+                sleep(0.1) # Wait for log
 
             f = sftp.open(paths['log'], 'r')
             while not rexists(sftp, paths['finished']):
@@ -240,23 +236,29 @@ class Instance(object):
         local_input_file = self.tags['local_input_file']
         paths = self.paths(local_input_file)
 
-        print "Receiving output files from instance"
-        if not os.path.isdir(paths['local_output_dir']):
-            os.mkdir(paths['local_output_dir'])
-        os.chdir(paths['local_output_dir'])
-        sftp.chdir(paths['output_dir'])
-        files = sftp.listdir()
-        for f in files:
-            sftp.get(f, f)
+        if rexists(sftp, paths['local_output_dir']):
+            print "Receiving output files from instance"
+            if not os.path.isdir(paths['local_output_dir']):
+                os.mkdir(paths['local_output_dir'])
+            os.chdir(paths['local_output_dir'])
+            sftp.chdir(paths['output_dir'])
+            files = sftp.listdir()
+            for f in files:
+                sftp.get(f, f)
 
-        print "Removing logs from instance"
-        sftp.remove(paths['log'])
+            print "Removing simulation output from instance"
+            ssh.exec_command("rm -r %s" % paths['output_dir'])
+
+        if rexists(sftp, paths['input_file']):
+            print "Removing input file from instance"
+            sftp.remove(paths['input_file'])
+
+        if rexists(sftp, paths['log']):
+            print "Removing logs from instance"
+            sftp.remove(paths['log'])
+
         if rexists(sftp, paths['finished']):
             sftp.remove(paths['finished'])
-
-        print "Removing simulation files from instance"
-        sftp.remove(paths['input_file'])
-        ssh.exec_command("rm -r %s" % paths['output_dir'])
 
         ssh.close()
 
@@ -266,20 +268,6 @@ class Instance(object):
             'port': None,
         })
 
-        self._instance.add_tag('status', 'ready')
-
-
-    def partial_clean(self, ssh, sftp):
-        """ Clean the instance when the simulation has not been started
-        """
-        if 'local_input_file' in self.tags:
-            local_input_file = self.tags['local_input_file']
-            paths = self.paths(local_input_file)
-
-            if rexists(sftp, paths['input_file']):
-                print "Removing input file from instance"
-                sftp.remove(paths['input_file'])
-
 
     def stop_or_terminate(self):
         answer = raw_input("Terminate the instance? [Yn]: ")
@@ -287,7 +275,6 @@ class Instance(object):
             print "Terminating instance"
             self.terminate()
         else:
-            self._instance.add_tag('status', 'ready')
             answer = raw_input("Stop the instance? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
                 print "Stopping instance"
@@ -376,14 +363,25 @@ class Instance(object):
     @property
     def tags(self):
         return self._instance.tags
+
+
+    @property
+    def state(self):
+        if self._instance.state == u'running':
+            # Determine if its ready or simulating
+            if 'local_input_file' in self.tags:
+                return u'simulating'
+            else:
+                return u'ready'
+        else:
+            return self._instance.state
         
 
     @staticmethod
     def has_mumax(aws_instance):
         return ('mumax-ec2' in aws_instance.tags and
             aws_instance.tags['mumax-ec2'] == str(__version__) and
-            'status' in aws_instance.tags and
-            aws_instance.tags['status'] != u'terminated')
+            aws_instance.state != u'terminated')
 
 
     @staticmethod
@@ -476,7 +474,7 @@ def reconnect_instance(args):
     group = InstanceGroup()
     instance = group.by_id(args.id[0])
     if instance is not None:
-        if instance.is_running():
+        if instance.is_simulating():
             instance.reconnect()
         else:
             print "Instance %s is not running" % args.id[0]
@@ -489,20 +487,12 @@ def list_instances(args):
     instances = group.instances
     if len(instances) > 0:
         print "MuMax-EC2 Instances:"
-        print "    ID\t\tIP\t\tStatus\t\tPort\t\tFile"
+        print "    ID\t\tIP\t\tState\t\tPort\t\tFile"
         for instance in instances:
             if instance.ip is None:
                 ip = "None\t"
             else:
                 ip = instance.ip
-            if instance.is_running():
-                status = 'running'
-            elif instance.is_ready():
-                status = 'ready'
-            elif instance.is_up():
-                status = 'starting'
-            else:
-                status = 'stopped'
             if 'port' in instance.tags:
                 port = instance.tags['port']
             else:
@@ -511,7 +501,7 @@ def list_instances(args):
                 mx3_file = os.path.basename(instance.tags['local_input_file'])
             else:
                 mx3_file = ''
-            print "    %s\t%s\t(%s)\t%s\t\t%s" % (instance.id, ip, status, port, mx3_file)
+            print "    %s\t%s\t(%s)\t%s\t\t%s" % (instance.id, ip, instance.state, port, mx3_file)
 
     else:
         print "No MuMax-EC2 instances currently running"
@@ -528,7 +518,7 @@ def terminate_instance(args):
     group = InstanceGroup()
     instance = group.by_id(args.id[0])
     if instance is not None:
-        if instance.is_running():
+        if instance.is_simulating():
             print "This instance is currently running."
             answer = raw_input("Proceed to terminate the instance? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
@@ -546,7 +536,7 @@ def stop_instance(args):
     group = InstanceGroup()
     instance = group.by_id(args.id[0])
     if instance is not None:
-        if instance.is_running():
+        if instance.is_simulating():
             print "This instance is currently running."
             answer = raw_input("Proceed to stop the instance? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
