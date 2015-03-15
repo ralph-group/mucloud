@@ -184,6 +184,9 @@ class Instance(object):
 
         self.wait_for_simulation(ssh, sftp)
 
+        # Exit screen
+        ssh.exec_command("screen -S %s -X stuff $'exit\r'" % SCREEN)
+
         print MUMAX_OUTPUT
         print "Stopping port forwarding"
         self.stop_port_forward()
@@ -229,9 +232,7 @@ class Instance(object):
             elif answer.startswith(("A", "a")):
                 print "Aborting the simulation"
                 # Keyboard interrupt
-                ssh.exec_command("ssh -S %s -X stuff $'\\003\r'" % SCREEN) 
-                # Exit screen
-                ssh.exec_command("ssh -S %s -X stuff $'exit\r'" % SCREEN)
+                ssh.exec_command("screen -S %s -X stuff $'\\003\r'" % SCREEN) 
             else:
                 print "Continuing the simulation"
                 self.wait_for_simulation()
