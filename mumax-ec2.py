@@ -130,7 +130,7 @@ class Instance(object):
         }
 
 
-    def run(self, local_input_file, port=PORT):
+    def run(self, local_input_file, port=PORT, detach=False):
         """ Run the mumax input file on a ready instance """
 
         if not self.is_ready():
@@ -178,13 +178,20 @@ class Instance(object):
             self.clean(ssh, sftp)
             return
 
-        disconnect = self.wait_for_simulation(ssh, sftp)
+        if detach:
+            print "Stopping port forwarding"
+            self.stop_port_forward()
+            print "Detaching from instance with simulation running"
+            print "Reattach with: python mumax-ec2.py reattach %s" % self.id
+            return
+
+        detach = self.wait_for_simulation(ssh, sftp)
 
         print MUMAX_OUTPUT
         print "Stopping port forwarding"
         self.stop_port_forward()
 
-        if disconnect:
+        if detach:
             return
 
         # Exit screen
@@ -215,10 +222,10 @@ class Instance(object):
 
         except KeyboardInterrupt:
             print "\n\nCaught keyboard interrupt during simulation"
-            answer = raw_input("Disconnect, abort, or continue the simulation? [Dac]: ")
+            answer = raw_input("Detach, abort, or continue the simulation? [Dac]: ")
             if len(answer) == 0 or answer.startswith(("D", "d")):
-                print "Disconnecting from instance"
-                print "Reconnect with: python mumax-ec2.py reconnect %s" % self.id
+                print "Detaching from instance with simulation running"
+                print "Reattach with: python mumax-ec2.py reattach %s" % self.id
                 return True
             elif answer.startswith(("A", "a")):
                 print "Aborting the simulation"
@@ -283,10 +290,10 @@ class Instance(object):
                 print "The instance has been left running"
 
 
-    def reconnect(self):
+    def reattach(self):
         if 'local_input_file' in self.tags:
             local_input_file = self.tags['local_input_file']
-            port = self.tags['port']
+            port = int(self.tags['port'])
             paths = self.paths(local_input_file)
 
             print "Reconnecting to running instance"
@@ -466,15 +473,15 @@ def run_instance(args):
     group = InstanceGroup()
     instance = group.ready_instance()
     if instance is not None:
-        instance.run(os.path.realpath(args.filename[0]), args.port[0])
+        instance.run(os.path.realpath(args.filename[0]), args.port[0], args.detach)
 
 
-def reconnect_instance(args):
+def reattach_instance(args):
     group = InstanceGroup()
     instance = group.by_id(args.id[0])
     if instance is not None:
         if instance.is_simulating():
-            instance.reconnect()
+            instance.reattach()
         else:
             print "Instance %s is not running" % args.id[0]
     else:
@@ -575,6 +582,8 @@ if __name__ == '__main__':
         help='A .mx3 input file for MuMax3')
     parser_run.add_argument('--port', type=int, default=[PORT], nargs=1,
         help="Desired local port number for the MuMax3 web interface (default: %d)" % PORT)
+    parser_run.add_argument('--detach', action='store_true',
+        help="Starts the simulation and immediately detaches if set")
     parser_run.set_defaults(func=run_instance)
 
     parser_list = subparsers.add_parser('list', help='list help')
@@ -597,13 +606,14 @@ if __name__ == '__main__':
     parser_start = subparsers.add_parser('start', help='start help')
     parser_start.add_argument('id', metavar='aws_id', type=str, nargs=1,
         help='AWS ID of instance')
-    parser_start.add_argument('--wait', action='store_true')
+    parser_start.add_argument('--wait', action='store_true',
+        help="Waits for the instance to boot up if set")
     parser_start.set_defaults(func=start_instance)
 
-    parser_reconnect = subparsers.add_parser('reconnect', help='reconnect help')
-    parser_reconnect.add_argument('id', metavar='aws_id', type=str, nargs=1,
+    parser_reattach = subparsers.add_parser('reattach', help='reattach help')
+    parser_reattach.add_argument('id', metavar='aws_id', type=str, nargs=1,
         help='AWS ID of instance')
-    parser_reconnect.set_defaults(func=reconnect_instance)
+    parser_reattach.set_defaults(func=reattach_instance)
 
     args = parser.parse_args()
     args.func(args)
