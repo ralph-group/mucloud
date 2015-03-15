@@ -162,7 +162,7 @@ class Instance(object):
             print "Transferring input file to instance: %s" % paths['basename']
             sftp.put(local_input_file, paths['input_file'])
 
-            print "Starting port forwarding"
+            print "Starting port forwarding: http://127.0.0.1:%d" % port
             self.port_forward(port)
 
             # Starting screen
@@ -308,7 +308,7 @@ class Instance(object):
                 print "The input file has not been uploaded correctly"
                 return
 
-            print "Starting port forwarding"
+            print "Starting port forwarding: http://127.0.0.1:%d" % port
             self.port_forward(port)
 
             disconnect = self.wait_for_simulation(ssh, sftp)
@@ -466,8 +466,7 @@ def run_instance(args):
     group = InstanceGroup()
     instance = group.ready_instance()
     if instance is not None:
-        # TODO: Add port options
-        instance.run(os.path.realpath(args.filename[0]))
+        instance.run(os.path.realpath(args.filename[0]), args.port[0])
 
 
 def reconnect_instance(args):
@@ -554,14 +553,14 @@ def start_instance(args):
     group = InstanceGroup()
     instance = group.by_id(args.id[0])
     if instance is not None:
-        if not instance.is_up():
+        if instance.state == u'stopped':
             print "Starting instance %s" % instance.id
             instance.start()
             if args.wait:
                 print "Waiting for instance to boot..."
                 instance.wait_for_boot()
         else:
-            print "Instance %s is already up" % args.id[0]
+            print "Instance %s is not in a state that can be started from" % args.id[0]
     else:
         print "Instance %s is not a valid MuMax-EC2 instance" % args.id[0]
 
@@ -574,6 +573,8 @@ if __name__ == '__main__':
     parser_run = subparsers.add_parser('run', help='run help')
     parser_run.add_argument('filename', metavar='filename', type=str, nargs=1,
         help='A .mx3 input file for MuMax3')
+    parser_run.add_argument('--port', type=int, default=[PORT], nargs=1,
+        help="Desired local port number for the MuMax3 web interface (default: %d)" % PORT)
     parser_run.set_defaults(func=run_instance)
 
     parser_list = subparsers.add_parser('list', help='list help')
