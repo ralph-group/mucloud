@@ -29,6 +29,7 @@ __version__ = 1.1
 
 PORT = 35367
 MUMAX_OUTPUT = "=" * 20 + " MuMax3 Output " + "=" * 20
+SCREEN = "mumax-ec2"
 
 
 import boto.ec2
@@ -169,40 +170,19 @@ class Instance(object):
             print "Starting port forwarding"
             self.port_forward(port)
 
-            transport = ssh.get_transport()
-            channel = transport.open_session()
-            read_channel = transport.open_session()
+            # Starting screen
+            ssh.exec_command("screen -dmS %s" % SCREEN)
 
             cmd = "source ./run_mumax3 %s %s" % (port, paths['input_file'])
             print "Running %s on MuMax3" % paths['basename']
-            channel.exec_command(cmd)
+            ssh.exec_command("screen -S %s -X stuff $'%s'\r" % (SCREEN, cmd))
 
         except KeyboardInterrupt:
-            print "\nCanceling simulation on keyboard interrupt"
+            print "\n\nCanceling simulation on keyboard interrupt"
             self.partial_clean(ssh, sftp)
             return
 
-        try:
-            print MUMAX_OUTPUT
-            sleep(0.5)
-
-            f = sftp.open(paths['log'], 'r')
-            while not rexists(sftp, paths['finished']):
-                data = f.read()
-                if data != "":
-                    print data, # ending comma to prevent newline
-            print f.read(),
-
-        except KeyboardInterrupt:
-            print "\nCaught keyboard interrupt during simulation"
-            answer = raw_input("Cancel or disconnect? [cD]: ")
-            if len(answer) == 0 or answer.startswith(("D", "d")):
-                print "Disconnection from instance"
-                self.terminate()
-            else:
-                print "Canceling instance"
-                channel.close()
-                self.halt(ssh)
+        self.wait_for_simulation(ssh, sftp)
 
         print MUMAX_OUTPUT
         print "Stopping port forwarding"
@@ -222,6 +202,39 @@ class Instance(object):
                 self.stop()
             else:
                 print "The instance has been left running"
+
+
+    def wait_for_simulation(self, ssh, sftp):
+        local_input_file = self._instance.tags['local_input_file']
+        paths = self.paths(local_input_file)
+
+        try:
+            print MUMAX_OUTPUT
+            sleep(0.5)
+
+            f = sftp.open(paths['log'], 'r')
+            while not rexists(sftp, paths['finished']):
+                data = f.read()
+                if data != "":
+                    print data, # ending comma to prevent newline
+            print f.read(),
+
+        except KeyboardInterrupt:
+            print "\n\nCaught keyboard interrupt during simulation"
+            answer = raw_input("Disconnect, abort, or continue the simulation? [Dac]: ")
+            if len(answer) == 0 or answer.startswith(("D", "d")):
+                print "Disconnecting from instance"
+                print "Reconnect with: python mumax-ec2.py reconnect %s" % self.id
+                return
+            elif answer.startswith(("A", "a")):
+                print "Aborting the simulation"
+                # Keyboard interrupt
+                ssh.exec_command("ssh -S %s -X stuff $'\\003\r'" % SCREEN) 
+                # Exit screen
+                ssh.exec_command("ssh -S %s -X stuff $'exit\r'" % SCREEN)
+            else:
+                print "Continuing the simulation"
+                self.wait_for_simulation()
 
 
     def clean(self, ssh, sftp):
