@@ -106,8 +106,9 @@ class Instance(object):
             self.tags['status'] == 'running')
 
 
-    def wait_for_boot(self):
+    def wait_for_boot(self, delay=1):
         """ Waits for an instance to boot up """
+        print "Waiting for instance to boot..."
         while not self.is_up():
             sleep(delay)
             self._instance.update()
@@ -379,8 +380,10 @@ class Instance(object):
 
     @staticmethod
     def has_mumax(aws_instance):
-        return ('status' in aws_instance.tags and
-            aws_instance.state != u'terminated')
+        return ('mumax-ec2' in aws_instance.tags and
+            aws_instance.tags['mumax-ec2'] == str(__version__) and
+            'status' in aws_instance.tags and
+            aws_instance.tags['status'] != u'terminated')
 
 
     @staticmethod
@@ -393,6 +396,7 @@ class Instance(object):
             security_groups=config.get('EC2', 'SecurityGroups').split(',')
         )
         instance = Instance(reservation.instances[0])
+        sleep(1)
         instance.add_ready_tags()
         return instance
 
@@ -442,8 +446,8 @@ class InstanceGroup(object):
             print "There are no instances waiting to be used."
             answer = raw_input("Create a new instance for this simulation? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
-                instance = launch_instance()
-                wait_for_instance(instance)
+                instance = Instance.launch()
+                instance.wait_for_boot()
                 return instance
             else:
                 print "No instance will be launched"
@@ -487,6 +491,10 @@ def list_instances(args):
         print "MuMax-EC2 Instances:"
         print "    ID\t\tIP\t\tStatus\t\tPort\t\tFile"
         for instance in instances:
+            if instance.ip is None:
+                ip = "None\t"
+            else:
+                ip = instance.ip
             if instance.is_running():
                 status = 'running'
             elif instance.is_ready():
@@ -503,7 +511,7 @@ def list_instances(args):
                 mx3_file = os.path.basename(instance.tags['local_input_file'])
             else:
                 mx3_file = ''
-            print "    %s\t%s\t(%s)\t%s\t\t%s" % (instance.id, instance.ip, status, port, mx3_file)
+            print "    %s\t%s\t(%s)\t%s\t\t%s" % (instance.id, ip, status, port, mx3_file)
 
     else:
         print "No MuMax-EC2 instances currently running"
