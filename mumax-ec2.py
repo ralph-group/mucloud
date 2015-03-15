@@ -66,6 +66,7 @@ class Instance(object):
 
     def __init__(self, aws_instance):
         self._instance = aws_instance
+        self._forward = None
 
 
     def start(self):
@@ -96,13 +97,13 @@ class Instance(object):
 
 
     def is_ready(self):
-        return ('status' in self._instance.tags and
-            self._instance.tags['status'] == 'ready')
+        return ('status' in self.tags and
+            self.tags['status'] == 'ready')
 
 
     def is_running(self):
-        return ('status' in self._instance.tags and
-            self._instance.tags['status'] == 'running')
+        return ('status' in self.tags and
+            self.tags['status'] == 'running')
 
 
     def wait_for_boot(self):
@@ -187,7 +188,7 @@ class Instance(object):
         print MUMAX_OUTPUT
         print "Stopping port forwarding"
         self.stop_port_forward()
-        
+
         if disconnect:
             return
 
@@ -196,22 +197,12 @@ class Instance(object):
 
         self.clean(ssh, sftp)
 
-        answer = raw_input("Terminate the instance? [Yn]: ")
-        if len(answer) == 0 or answer.startswith(("Y", "y")):
-            print "Terminating instance"
-            self.terminate()
-        else:
-            self._instance.add_tag('status', 'ready')
-            answer = raw_input("Stop the instance? [Yn]: ")
-            if len(answer) == 0 or answer.startswith(("Y", "y")):
-                print "Stopping instance"
-                self.stop()
-            else:
-                print "The instance has been left running"
+        self.stop_or_terminate()
+
 
 
     def wait_for_simulation(self, ssh, sftp):
-        local_input_file = self._instance.tags['local_input_file']
+        local_input_file = self.tags['local_input_file']
         paths = self.paths(local_input_file)
 
         try:
@@ -245,7 +236,7 @@ class Instance(object):
     def clean(self, ssh, sftp):
         """ Clean the instance when the simulation has been stopped
         """
-        local_input_file = self._instance.tags['local_input_file']
+        local_input_file = self.tags['local_input_file']
         paths = self.paths(local_input_file)
 
         print "Receiving output files from instance"
@@ -280,8 +271,8 @@ class Instance(object):
     def partial_clean(self, ssh, sftp):
         """ Clean the instance when the simulation has not been started
         """
-        if 'local_input_file' in self._instance.tags:
-            local_input_file = self._instance.tags['local_input_file']
+        if 'local_input_file' in self.tags:
+            local_input_file = self.tags['local_input_file']
             paths = self.paths(local_input_file)
 
             if rexists(sftp, paths['input_file']):
@@ -289,13 +280,67 @@ class Instance(object):
                 sftp.remove(paths['input_file'])
 
 
-    def reconnect(self):
-        # Get the file paths from the tags
-        local_input_file = self._instance.tags['local_input_file']
-        local_output_dir = self._instance.tags['local_output_dir']
-        input_file = self._instance.tags['input_file']
-        output_dir = self._instance.tags['output_dir']
+    def stop_or_terminate(self):
+        answer = raw_input("Terminate the instance? [Yn]: ")
+        if len(answer) == 0 or answer.startswith(("Y", "y")):
+            print "Terminating instance"
+            self.terminate()
+        else:
+            self._instance.add_tag('status', 'ready')
+            answer = raw_input("Stop the instance? [Yn]: ")
+            if len(answer) == 0 or answer.startswith(("Y", "y")):
+                print "Stopping instance"
+                self.stop()
+            else:
+                print "The instance has been left running"
 
+
+    def reconnect(self):
+        if 'local_input_file' in self.tags:
+            local_input_file = self.tags['local_input_file']
+            port = self.tags['port']
+            paths = self.paths(local_input_file)
+
+            print "Reconnecting to running instance"
+
+            try:
+                print "Making secure connection to instance %s..." % self.id
+                ssh = paramiko.SSHClient()
+                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                ssh.connect(self.ip, 
+                    username=config.get('EC2', 'User'),
+                    key_filename=config.get('EC2', 'PrivateKeyFile')
+                )
+                sftp = ssh.open_sftp()
+            except:
+                print "Could not connect to remote server"
+                return
+
+            if not rexists(sftp, paths['input_file']):
+                print "The input file has not been uploaded correctly"
+                return
+
+            print "Starting port forwarding"
+            self.port_forward(port)
+
+            disconnect = self.wait_for_simulation(ssh, sftp)
+
+            print MUMAX_OUTPUT
+            print "Stopping port forwarding"
+            self.stop_port_forward()
+
+            if disconnect:
+                return
+
+            # Exit screen
+            ssh.exec_command("screen -S %s -X stuff $'exit\r'" % SCREEN)
+
+            self.clean(ssh, sftp)
+
+            self.stop_or_terminate()
+                
+        else:
+            print "Instance %s is not running a simulation" % self.id
 
     def port_forward(self, port=PORT):
         key = paramiko.RSAKey.from_private_key_file(
@@ -312,21 +357,9 @@ class Instance(object):
 
 
     def stop_port_forward(self):
-        self._forward.stop()
-
-
-    def halt(self, ssh):
-        try:
-            # Try to kill the process
-            ssh.get_transport().open_session().exec_command(
-                "kill -9 `ps -fu | grep mumax3 | grep -v grep | awk '{print $2}'`"
-            )
-        except:
-            pass
-
-
-    def disconnect(self):
-        pass
+        if self._forward is not None:
+            self._forward.stop()
+            self._forward = None
 
 
     @property
@@ -348,6 +381,7 @@ class Instance(object):
     def has_mumax(aws_instance):
         return ('status' in aws_instance.tags and
             aws_instance.state != u'terminated')
+
 
     @staticmethod
     def launch():
@@ -426,7 +460,7 @@ class InstanceGroup(object):
 
 
 
-def run(args):
+def run_instance(args):
     group = InstanceGroup()
     instance = group.ready_instance()
     if instance is not None:
@@ -434,7 +468,7 @@ def run(args):
         instance.run(os.path.realpath(args.filename[0]))
 
 
-def reconnect(args):
+def reconnect_instance(args):
     group = InstanceGroup()
     instance = group.by_id(args.id[0])
     if instance is not None:
@@ -451,7 +485,7 @@ def list_instances(args):
     instances = group.instances
     if len(instances) > 0:
         print "MuMax-EC2 Instances:"
-        print "    ID\t\tIP\t\tStatus\t\tPort\t\tUp time (sec)"
+        print "    ID\t\tIP\t\tStatus\t\tPort\t\tFile"
         for instance in instances:
             if instance.is_running():
                 status = 'running'
@@ -465,7 +499,11 @@ def list_instances(args):
                 port = instance.tags['port']
             else:
                 port = ''
-            print "    %s\t%s\t(%s)\t%s" % (instance.id, instance.ip, status, port)
+            if 'local_input_file' in instance.tags:
+                mx3_file = os.path.basename(instance.tags['local_input_file'])
+            else:
+                mx3_file = ''
+            print "    %s\t%s\t(%s)\t%s\t\t%s" % (instance.id, instance.ip, status, port, mx3_file)
 
     else:
         print "No MuMax-EC2 instances currently running"
@@ -538,7 +576,7 @@ if __name__ == '__main__':
     parser_run = subparsers.add_parser('run', help='run help')
     parser_run.add_argument('filename', metavar='filename', type=str, nargs=1,
         help='A .mx3 input file for MuMax3')
-    parser_run.set_defaults(func=run)
+    parser_run.set_defaults(func=run_instance)
 
     parser_list = subparsers.add_parser('list', help='list help')
     parser_list.set_defaults(func=list_instances)
@@ -562,6 +600,11 @@ if __name__ == '__main__':
         help='AWS ID of instance')
     parser_start.add_argument('--wait', action='store_true')
     parser_start.set_defaults(func=start_instance)
+
+    parser_reconnect = subparsers.add_parser('reconnect', help='reconnect help')
+    parser_reconnect.add_argument('id', metavar='aws_id', type=str, nargs=1,
+        help='AWS ID of instance')
+    parser_reconnect.set_defaults(func=reconnect_instance)
 
     args = parser.parse_args()
     args.func(args)
