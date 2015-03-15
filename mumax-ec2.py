@@ -26,8 +26,9 @@ THE SOFTWARE.
 """
 
 __version__ = 1.1
-__ON_AWS__ = "==================== AWS INSTANCE ===================="
+
 PORT = 35367
+MUMAX_OUTPUT = "=" * 20 + " MuMax3 Output " + "=" * 20
 
 
 import boto.ec2
@@ -67,7 +68,7 @@ class Instance(object):
 
 
     def start(self):
-        aws.start_instances(instance_ids=instance.id)
+        aws.start_instances(instance_ids=self.id)
         self.add_ready_tags()
 
 
@@ -111,28 +112,31 @@ class Instance(object):
         sleep(delay)
 
 
-    def run(self, raw_input_file, port=PORT):
+    @property
+    def directory(self):
+        return "/home/%s" % config.get('EC2', 'User')
+
+
+    def paths(self, local_input_file):
+        basename = os.path.basename(local_input_file)
+        directory = "/home/%s" % config.get('EC2', 'User')
+
+        return {
+            'local_input_file': local_input_file,
+            'local_output_dir': local_input_file.replace(".mx3", ".out"),
+            'input_file': "%s/simulations/%s" % (directory, basename),
+            'output_dir': "%s/simulations/%s" % (directory, basename.replace(".mx3", ".out")),
+            'basename': basename,
+            'log': "%s/log.txt" % directory,
+            'finished': "%s/finished" % directory,
+        }
+
+
+    def run(self, local_input_file, port=PORT):
         """ Run the mumax input file on a ready instance """
 
         if not self.is_ready():
             raise Exception("The instance %s is not ready to be run" % repr(self))
-
-        # Determine file paths
-        local_input_file = os.path.realpath(raw_input_file)
-        local_output_dir = local_input_file.replace(".mx3", ".out")
-
-        basename = os.path.basename(local_input_file)
-        directory = "/home/%s" % config.get('EC2', 'User')
-        input_file = "%s/simulations/%s" % (directory, basename)
-        output_dir = "%s/simulations/%s" % (directory, basename.replace(".mx3", ".out"))
-
-        self._instance.add_tags({
-            'local_input_file': local_input_file,
-            'local_output_dir': local_output_dir,
-            'input_file': input_file,
-            'output_dir': output_dir,
-            'port': port,
-        })
 
         try:
             print "Making secure connection to instance %s..." % self.id
@@ -147,49 +151,60 @@ class Instance(object):
             print "Could not connect to remote server"
             return
 
-        self._instance.remove_tag('status')
-        self._instance.add_tag('status', 'running')
-
-        print "Transferring input file to instance: %s" % basename
-        sftp.put(local_input_file, input_file)
-
-        print "Starting port forwarding"
-        self.port_forward(port)
-
-        transport = ssh.get_transport()
-        channel = transport.open_session()
-        read_channel = transport.open_session()
-
-        cmd = "source ./run_mumax3 %s %s" % (port, input_file)
-        print cmd
-        print __ON_AWS__
-        channel.exec_command(cmd)
-        sleep(0.5)
-        
         try:
-            f = sftp.open(directory + '/log.txt', 'r')
-            while not rexists(sftp, directory + '/finished'):
+
+            # Determine file paths
+            paths = self.paths(local_input_file)
+
+            self._instance.remove_tag('status')
+            self._instance.add_tags({
+                'status': 'running',
+                'local_input_file': local_input_file,
+                'port': port,
+            })
+
+            print "Transferring input file to instance: %s" % paths['basename']
+            sftp.put(local_input_file, paths['input_file'])
+
+            print "Starting port forwarding"
+            self.port_forward(port)
+
+            transport = ssh.get_transport()
+            channel = transport.open_session()
+            read_channel = transport.open_session()
+
+            cmd = "source ./run_mumax3 %s %s" % (port, paths['input_file'])
+            print "Running %s on MuMax3" % paths['basename']
+            channel.exec_command(cmd)
+
+        except KeyboardInterrupt:
+            print "\nCanceling simulation on keyboard interrupt"
+            self.partial_clean(ssh, sftp)
+            return
+
+        try:
+            print MUMAX_OUTPUT
+            sleep(0.5)
+
+            f = sftp.open(paths['log'], 'r')
+            while not rexists(sftp, paths['finished']):
                 data = f.read()
                 if data != "":
                     print data, # ending comma to prevent newline
             print f.read(),
 
         except KeyboardInterrupt:
-            print "\nCaught Ctrl-C"
-            channel.close()
+            print "\nCaught keyboard interrupt during simulation"
+            answer = raw_input("Cancel or disconnect? [cD]: ")
+            if len(answer) == 0 or answer.startswith(("D", "d")):
+                print "Disconnection from instance"
+                self.terminate()
+            else:
+                print "Canceling instance"
+                channel.close()
+                self.halt(ssh)
 
-            try:
-                # Try to kill the process
-                ssh.get_transport().open_session().exec_command(
-                    "kill -9 `ps -fu | grep mumax3 | grep -v grep | awk '{print $2}'`"
-                )
-            except:
-                pass
-
-        #sftp.remove(directory + '/log.txt')
-        sftp.remove(directory + '/finished')
-
-        print __ON_AWS__
+        print MUMAX_OUTPUT
         print "Stopping port forwarding"
         self.stop_port_forward()
 
@@ -210,37 +225,50 @@ class Instance(object):
 
 
     def clean(self, ssh, sftp):
+        """ Clean the instance when the simulation has been stopped
+        """
         local_input_file = self._instance.tags['local_input_file']
-        local_output_dir = self._instance.tags['local_output_dir']
-        input_file = self._instance.tags['input_file']
-        output_dir = self._instance.tags['output_dir']
+        paths = self.paths(local_input_file)
 
         print "Receiving output files from instance"
-        if not os.path.isdir(local_output_dir):
-            os.mkdir(local_output_dir)
-        os.chdir(local_output_dir)
-        sftp.chdir(output_dir)
+        if not os.path.isdir(paths['local_output_dir']):
+            os.mkdir(paths['local_output_dir'])
+        os.chdir(paths['local_output_dir'])
+        sftp.chdir(paths['output_dir'])
         files = sftp.listdir()
         for f in files:
             sftp.get(f, f)
 
+        print "Removing logs from instance"
+        sftp.remove(paths['log'])
+        if rexists(sftp, paths['finished']):
+            sftp.remove(paths['finished'])
+
         print "Removing simulation files from instance"
-        sftp.remove(input_file)
-        ssh.exec_command("rm -r %s" % output_dir)
+        sftp.remove(paths['input_file'])
+        ssh.exec_command("rm -r %s" % paths['output_dir'])
 
         ssh.close()
 
         # Remove tags
         self._instance.remove_tags({
             'local_input_file': None,
-            'local_output_dir': None,
-            'input_file': None,
-            'output_dir': None,
             'port': None,
         })
 
         self._instance.add_tag('status', 'ready')
 
+
+    def partial_clean(self, ssh, sftp):
+        """ Clean the instance when the simulation has not been started
+        """
+        if 'local_input_file' in self._instance.tags:
+            local_input_file = self._instance.tags['local_input_file']
+            paths = self.paths(local_input_file)
+
+            if rexists(sftp, paths['input_file']):
+                print "Removing input file from instance"
+                sftp.remove(paths['input_file'])
 
 
     def reconnect(self):
@@ -269,11 +297,17 @@ class Instance(object):
         self._forward.stop()
 
 
-    def halt(self):
-        pass
+    def halt(self, ssh):
+        try:
+            # Try to kill the process
+            ssh.get_transport().open_session().exec_command(
+                "kill -9 `ps -fu | grep mumax3 | grep -v grep | awk '{print $2}'`"
+            )
+        except:
+            pass
 
 
-    def kill(self):
+    def disconnect(self):
         pass
 
 
@@ -338,10 +372,10 @@ class InstanceGroup(object):
         return False
 
 
-    def by_id(id):
+    def by_id(self, id):
         """ Returns an instance object based on an id
         """
-        for instance in mumax_ec2_instances:
+        for instance in self.instances:
             if instance.id == id:
                 return instance
         return None
@@ -378,7 +412,8 @@ def run(args):
     group = InstanceGroup()
     instance = group.ready_instance()
     if instance is not None:
-        instance.run(args.filename[0])
+        # TODO: Add port options
+        instance.run(os.path.realpath(args.filename[0]))
 
 
 def reconnect(args):
@@ -388,9 +423,9 @@ def reconnect(args):
         if instance.is_running():
             instance.reconnect()
         else:
-            print "AWS ID %s is not running" % args.id[0]
+            print "Instance %s is not running" % args.id[0]
     else:
-        print "AWS ID %s is not a valid MuMax-EC2 instance" % args.id[0]
+        print "Instance %s is not a valid MuMax-EC2 instance" % args.id[0]
 
 
 def list_instances(args):
@@ -440,7 +475,7 @@ def terminate_instance(args):
         print "Terminating instance %s" % instance.id
         instance.terminate()
     else:
-        print "AWS ID %s is not a valid MuMax-EC2 instance" % args.id[0]
+        print "Instance %s is not a valid MuMax-EC2 instance" % args.id[0]
 
 
 def stop_instance(args):
@@ -458,7 +493,7 @@ def stop_instance(args):
         print "Stopping instance %s" % instance.id
         instance.stop()
     else:
-        print "AWS ID %s is not a valid MuMax-EC2 instance" % args.id[0]
+        print "Instance %s is not a valid MuMax-EC2 instance" % args.id[0]
 
 
 def start_instance(args):
@@ -472,9 +507,9 @@ def start_instance(args):
                 print "Waiting for instance to boot..."
                 instance.wait_for_boot()
         else:
-            print "AWS ID %s is already up"
+            print "Instance %s is already up" % args.id[0]
     else:
-        print "AWS ID %s is not a valid MuMax-EC2 instance" % args.id[0]
+        print "Instance %s is not a valid MuMax-EC2 instance" % args.id[0]
 
 
 if __name__ == '__main__':
