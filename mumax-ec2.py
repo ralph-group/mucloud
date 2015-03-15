@@ -182,14 +182,17 @@ class Instance(object):
             self.partial_clean(ssh, sftp)
             return
 
-        self.wait_for_simulation(ssh, sftp)
-
-        # Exit screen
-        ssh.exec_command("screen -S %s -X stuff $'exit\r'" % SCREEN)
+        disconnect = self.wait_for_simulation(ssh, sftp)
 
         print MUMAX_OUTPUT
         print "Stopping port forwarding"
         self.stop_port_forward()
+        
+        if disconnect:
+            return
+
+        # Exit screen
+        ssh.exec_command("screen -S %s -X stuff $'exit\r'" % SCREEN)
 
         self.clean(ssh, sftp)
 
@@ -228,14 +231,15 @@ class Instance(object):
             if len(answer) == 0 or answer.startswith(("D", "d")):
                 print "Disconnecting from instance"
                 print "Reconnect with: python mumax-ec2.py reconnect %s" % self.id
-                return
+                return True
             elif answer.startswith(("A", "a")):
                 print "Aborting the simulation"
                 # Keyboard interrupt
-                ssh.exec_command("screen -S %s -X stuff $'\\003\r'" % SCREEN) 
+                ssh.exec_command("screen -S %s -X stuff $'\\003\r'" % SCREEN)
+                return False
             else:
                 print "Continuing the simulation"
-                self.wait_for_simulation()
+                return self.wait_for_simulation(ssh, sftp)
 
 
     def clean(self, ssh, sftp):
