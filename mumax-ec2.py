@@ -507,7 +507,7 @@ def list_instances(args):
                 mx3_file = os.path.basename(instance.tags['local_input_file'])
             else:
                 mx3_file = ''
-            print "    %s\t%s\t(%s)\t%s\t\t%s" % (instance.id, ip, instance.state, port, mx3_file)
+            print "    %s\t%s\t%s\t%s\t\t%s" % (instance.id, ip, instance.state, port, mx3_file)
 
     else:
         print "No MuMax-EC2 instances currently running"
