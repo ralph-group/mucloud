@@ -25,22 +25,21 @@ THE SOFTWARE.
 
 """
 
-__version__ = 1.1
-
-PORT = 35367
-MUMAX_OUTPUT = "=" * 20 + " MuMax3 Output " + "=" * 20
-SCREEN = "mumax-ec2"
-
-
 import boto.ec2
 import paramiko
-import sys, os
+import os
 from time import sleep
-import select
 from sshtunnel import SSHTunnelForwarder
 
 import argparse
 import ConfigParser
+
+__version__ = 1.1
+
+PORT = 35367
+MUMAX_OUTPUT = "=" * 20 + " MuMax3 output " + "=" * 20
+SCREEN = "mumax-ec2"
+
 config = ConfigParser.ConfigParser()
 config.read(os.path.dirname(os.path.realpath(__file__))+"/config.ini")
 
@@ -50,6 +49,7 @@ aws = boto.ec2.connect_to_region(
     aws_access_key_id=config.get('EC2', 'AccessID'),
     aws_secret_access_key=config.get('EC2', 'SecretKey')
 )
+
 
 def rexists(sftp, path):
     try:
@@ -63,43 +63,39 @@ def rexists(sftp, path):
 
 
 class Instance(object):
+    """ Encapsulates the AWS EC2 instance to add additional functionality
+    for running the MuMax3 simulations.
+    """
 
     def __init__(self, aws_instance):
         self._instance = aws_instance
         self._forward = None
 
-
     def start(self):
         aws.start_instances(instance_ids=self.id)
         self.add_ready_tags()
 
-
     def add_ready_tags(self):
         self._instance.add_tag('mumax-ec2', __version__)
-
 
     def stop(self):
         aws.stop_instances(instance_ids=[self.id])
 
-
     def terminate(self):
         # Toggle on delete on termination
-        devices = ["%s=1" % dev for dev, bd in self._instance.block_device_mapping.items()]
+        devices = ["%s=1" % dev for dev, bd in
+                   self._instance.block_device_mapping.items()]
         self._instance.modify_attribute('BlockDeviceMapping', devices)
         aws.terminate_instances(instance_ids=[self.id])
-
 
     def is_up(self):
         return self._instance.state == u'running'
 
-
     def is_ready(self):
         return self.state == u'ready'
 
-
     def is_simulating(self):
         return self.state == u'simulating'
-
 
     def wait_for_boot(self, delay=10):
         """ Waits for an instance to boot up """
@@ -109,11 +105,9 @@ class Instance(object):
             self._instance.update()
         sleep(delay)
 
-
     @property
     def directory(self):
         return "/home/%s" % config.get('EC2', 'User')
-
 
     def paths(self, local_input_file):
         basename = os.path.basename(local_input_file)
@@ -123,24 +117,28 @@ class Instance(object):
             'local_input_file': local_input_file,
             'local_output_dir': local_input_file.replace(".mx3", ".out"),
             'input_file': "%s/simulations/%s" % (directory, basename),
-            'output_dir': "%s/simulations/%s" % (directory, basename.replace(".mx3", ".out")),
+            'output_dir': "%s/simulations/%s" % (
+                directory,
+                basename.replace(".mx3", ".out")
+            ),
             'basename': basename,
             'log': "%s/log.txt" % directory,
             'finished': "%s/finished" % directory,
         }
 
-
     def run(self, local_input_file, port=PORT, detach=False):
         """ Run the mumax input file on a ready instance """
 
         if not self.is_ready():
-            raise Exception("The instance %s is not ready to be run" % repr(self))
+            raise Exception("The instance %s is not ready to be run" % repr(
+                            self))
 
         try:
             print "Making secure connection to instance %s..." % self.id
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(self.ip, 
+            ssh.connect(
+                self.ip,
                 username=config.get('EC2', 'User'),
                 key_filename=config.get('EC2', 'PrivateKeyFile')
             )
@@ -201,8 +199,6 @@ class Instance(object):
 
         self.stop_or_terminate()
 
-
-
     def wait_for_simulation(self, ssh, sftp):
         local_input_file = self.tags['local_input_file']
         paths = self.paths(local_input_file)
@@ -211,21 +207,23 @@ class Instance(object):
             print MUMAX_OUTPUT
 
             while not rexists(sftp, paths['log']):
-                sleep(0.1) # Wait for log
+                sleep(0.1)  # Wait for log
 
             f = sftp.open(paths['log'], 'r')
             while not rexists(sftp, paths['finished']):
                 data = f.read()
                 if data != "":
-                    print data, # ending comma to prevent newline
+                    print data,  # ending comma to prevent newline
             print f.read(),
 
         except KeyboardInterrupt:
             print "\n\nCaught keyboard interrupt during simulation"
-            answer = raw_input("Detach, abort, or continue the simulation? [Dac]: ")
+            answer = raw_input("Detach, abort, or continue the "
+                               "simulation? [Dac]: ")
             if len(answer) == 0 or answer.startswith(("D", "d")):
                 print "Detaching from instance with simulation running"
-                print "Reattach with: python mumax-ec2.py reattach %s" % self.id
+                print ("Reattach with: python mumax-ec2.py"
+                       " reattach %s" % self.id)
                 return True
             elif answer.startswith(("A", "a")):
                 print "Aborting the simulation"
@@ -235,7 +233,6 @@ class Instance(object):
             else:
                 print "Continuing the simulation"
                 return self.wait_for_simulation(ssh, sftp)
-
 
     def clean(self, ssh, sftp):
         """ Clean the instance when the simulation has been stopped
@@ -275,7 +272,6 @@ class Instance(object):
             'port': None,
         })
 
-
     def stop_or_terminate(self):
         answer = raw_input("Terminate the instance? [Yn]: ")
         if len(answer) == 0 or answer.startswith(("Y", "y")):
@@ -289,7 +285,6 @@ class Instance(object):
             else:
                 print "The instance has been left running"
 
-
     def reattach(self):
         if 'local_input_file' in self.tags:
             local_input_file = self.tags['local_input_file']
@@ -302,7 +297,8 @@ class Instance(object):
                 print "Making secure connection to instance %s..." % self.id
                 ssh = paramiko.SSHClient()
                 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                ssh.connect(self.ip, 
+                ssh.connect(
+                    self.ip,
                     username=config.get('EC2', 'User'),
                     key_filename=config.get('EC2', 'PrivateKeyFile')
                 )
@@ -333,7 +329,6 @@ class Instance(object):
             self.clean(ssh, sftp)
 
             self.stop_or_terminate()
-                
         else:
             print "Instance %s is not running a simulation" % self.id
 
@@ -350,27 +345,22 @@ class Instance(object):
         )
         self._forward.start()
 
-
     def stop_port_forward(self):
         if self._forward is not None:
             self._forward.stop()
             self._forward = None
 
-
     @property
     def ip(self):
         return self._instance.ip_address
-
 
     @property
     def id(self):
         return self._instance.id
 
-
     @property
     def tags(self):
         return self._instance.tags
-
 
     @property
     def state(self):
@@ -382,14 +372,14 @@ class Instance(object):
                 return u'ready'
         else:
             return self._instance.state
-        
 
     @staticmethod
     def has_mumax(aws_instance):
-        return ('mumax-ec2' in aws_instance.tags and
+        return (
+            'mumax-ec2' in aws_instance.tags and
             aws_instance.tags['mumax-ec2'] == str(__version__) and
-            aws_instance.state != u'terminated')
-
+            aws_instance.state != u'terminated'
+        )
 
     @staticmethod
     def launch():
@@ -405,33 +395,16 @@ class Instance(object):
         instance.add_ready_tags()
         return instance
 
-
     def __repr__(self):
         return "<MuMax-EC2 Instance(id='%s')>" % self.id
-
 
 
 class InstanceGroup(object):
 
     def __init__(self):
         all_instances = aws.get_only_instances()
-        self.instances = [Instance(i) for i in all_instances if Instance.has_mumax(i)]
-
-
-    def has_id(id, running=True):
-        """ Returns True if the ID is a valid MuMax-EC2 instance
-        and if it is running or not
-        """
-        for instance in self.instances:
-            if instance.id == id:
-                if running == None:
-                    return True
-                elif up_condition(instance) == running:
-                    return True
-                else:
-                    return False
-        return False
-
+        self.instances = [Instance(i) for i in
+                          all_instances if Instance.has_mumax(i)]
 
     def by_id(self, id):
         """ Returns an instance object based on an id
@@ -441,15 +414,15 @@ class InstanceGroup(object):
                 return instance
         return None
 
-
     def ready_instance(self):
-        """ Returns an instance from the ready list or launches 
+        """ Returns an instance from the ready list or launches
         a new instance upon prompt
         """
         ready_instances = [i for i in self.instances if i.is_ready()]
         if len(ready_instances) == 0:
             print "There are no instances waiting to be used."
-            answer = raw_input("Create a new instance for this simulation? [Yn]: ")
+            answer = raw_input("Create a new instance for this "
+                               "simulation? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
                 instance = Instance.launch()
                 instance.wait_for_boot()
@@ -458,22 +431,24 @@ class InstanceGroup(object):
                 print "No instance will be launched"
                 return None
         else:
-            instance = ready_instances[0] # Select the 1st ready instance
+            instance = ready_instances[0]  # Select the 1st ready instance
             print "Instance %s is ready" % instance.id
             return instance
 
-
-
-
-
-
+########################################
+# Functions for main method sub-commands
+########################################
 
 
 def run_instance(args):
     group = InstanceGroup()
     instance = group.ready_instance()
     if instance is not None:
-        instance.run(os.path.realpath(args.filename[0]), args.port[0], args.detach)
+        instance.run(
+            os.path.realpath(args.filename[0]),
+            args.port[0],
+            args.detach
+        )
 
 
 def reattach_instance(args):
@@ -507,7 +482,13 @@ def list_instances(args):
                 mx3_file = os.path.basename(instance.tags['local_input_file'])
             else:
                 mx3_file = ''
-            print "    %s\t%s\t%s\t%s\t\t%s" % (instance.id, ip, instance.state, port, mx3_file)
+            print "    %s\t%s\t%s\t%s\t\t%s" % (
+                instance.id,
+                ip,
+                instance.state,
+                port,
+                mx3_file
+            )
 
     else:
         print "No MuMax-EC2 instances currently running"
@@ -567,22 +548,29 @@ def start_instance(args):
                 print "Waiting for instance to boot..."
                 instance.wait_for_boot()
         else:
-            print "Instance %s is not in a state that can be started from" % args.id[0]
+            print ("Instance %s is not in a state that can be "
+                   "started from" % args.id[0])
     else:
         print "Instance %s is not a valid MuMax-EC2 instance" % args.id[0]
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Runs MuMax3 .mx3 files on Amazon Web Services (AWS) instances')
+        description="Runs MuMax3 .mx3 files on Amazon Web Services"
+                    " (AWS) instances")
     subparsers = parser.add_subparsers(help='sub-command help')
 
     parser_run = subparsers.add_parser('run', help='run help')
-    parser_run.add_argument('filename', metavar='filename', type=str, nargs=1,
-        help='A .mx3 input file for MuMax3')
-    parser_run.add_argument('--port', type=int, default=[PORT], nargs=1,
-        help="Desired local port number for the MuMax3 web interface (default: %d)" % PORT)
-    parser_run.add_argument('--detach', action='store_true',
+    parser_run.add_argument(
+        'filename', metavar='filename', type=str, nargs=1,
+        help='A .mx3 input file for MuMax3'
+    )
+    parser_run.add_argument(
+        '--port', type=int, default=[PORT], nargs=1,
+        help="Desired local port number for the MuMax3 web "
+             "interface (default: %d)" % PORT)
+    parser_run.add_argument(
+        '--detach', action='store_true',
         help="Starts the simulation and immediately detaches if set")
     parser_run.set_defaults(func=run_instance)
 
@@ -593,25 +581,31 @@ if __name__ == '__main__':
     parser_launch.add_argument('--wait', action='store_true')
     parser_launch.set_defaults(func=launch_instance, wait=False)
 
-    parser_terminate = subparsers.add_parser('terminate', help='terminate help')
-    parser_terminate.add_argument('id', metavar='aws_id', type=str, nargs=1,
+    parser_terminate = subparsers.add_parser(
+        'terminate', help='terminate help')
+    parser_terminate.add_argument(
+        'id', metavar='aws_id', type=str, nargs=1,
         help='AWS ID of instance')
     parser_terminate.set_defaults(func=terminate_instance)
 
     parser_stop = subparsers.add_parser('stop', help='stop help')
-    parser_stop.add_argument('id', metavar='aws_id', type=str, nargs=1,
+    parser_stop.add_argument(
+        'id', metavar='aws_id', type=str, nargs=1,
         help='AWS ID of instance')
     parser_stop.set_defaults(func=stop_instance)
 
     parser_start = subparsers.add_parser('start', help='start help')
-    parser_start.add_argument('id', metavar='aws_id', type=str, nargs=1,
+    parser_start.add_argument(
+        'id', metavar='aws_id', type=str, nargs=1,
         help='AWS ID of instance')
-    parser_start.add_argument('--wait', action='store_true',
+    parser_start.add_argument(
+        '--wait', action='store_true',
         help="Waits for the instance to boot up if set")
     parser_start.set_defaults(func=start_instance)
 
     parser_reattach = subparsers.add_parser('reattach', help='reattach help')
-    parser_reattach.add_argument('id', metavar='aws_id', type=str, nargs=1,
+    parser_reattach.add_argument(
+        'id', metavar='aws_id', type=str, nargs=1,
         help='AWS ID of instance')
     parser_reattach.set_defaults(func=reattach_instance)
 
