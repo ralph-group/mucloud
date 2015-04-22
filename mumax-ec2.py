@@ -28,11 +28,23 @@ THE SOFTWARE.
 import boto.ec2
 import paramiko
 import os
+import sys
 from time import sleep
 from sshtunnel import SSHTunnelForwarder
 
 import argparse
 import ConfigParser
+
+import logging
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+log.addHandler(logging.StreamHandler(sys.stdout))
+
+# Suppress other logs from printing to stdout
+for log_name in ["paramiko.transport", "sshtunnel"]:
+    logging.getLogger(log_name).addHandler(
+        logging.NullHandler()
+    )
 
 __version__ = 1.1
 
@@ -99,7 +111,7 @@ class Instance(object):
 
     def wait_for_boot(self, delay=10):
         """ Waits for an instance to boot up """
-        print "Waiting for instance to boot..."
+        log.info("Waiting for instance to boot...")
         while not self.is_up():
             sleep(delay)
             self._instance.update()
@@ -134,7 +146,7 @@ class Instance(object):
                             self))
 
         try:
-            print "Making secure connection to instance %s..." % self.id
+            log.info("Making secure connection to instance %s..." % self.id)
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(
@@ -144,7 +156,7 @@ class Instance(object):
             )
             sftp = ssh.open_sftp()
         except:
-            print "Could not connect to remote server"
+            log.error("Could not connect to remote server")
             return
 
         try:
@@ -157,10 +169,11 @@ class Instance(object):
                 'port': port,
             })
 
-            print "Transferring input file to instance: %s" % paths['basename']
+            log.info("Transferring input file to instance:"
+                     " %s" % paths['basename'])
             sftp.put(local_input_file, paths['input_file'])
 
-            print "Starting port forwarding: http://127.0.0.1:%d" % port
+            log.info("Starting port forwarding: http://127.0.0.1:%d" % port)
             self.port_forward(port)
 
             # Starting screen
@@ -168,25 +181,26 @@ class Instance(object):
             sleep(0.5)
 
             cmd = "source ./run_mumax3 %s %s" % (port, paths['input_file'])
-            print "Running %s on MuMax3" % paths['basename']
+            log.info("Running %s on MuMax3" % paths['basename'])
             ssh.exec_command("screen -S %s -X stuff $'%s'\r" % (SCREEN, cmd))
 
         except KeyboardInterrupt:
-            print "\n\nCanceling simulation on keyboard interrupt"
+            log.info("\n\nCanceling simulation on keyboard interrupt")
             self.clean(ssh, sftp)
             return
 
         if detach:
-            print "Stopping port forwarding"
+            log.info("Stopping port forwarding")
             self.stop_port_forward()
-            print "Detaching from instance with simulation running"
-            print "Reattach with: python mumax-ec2.py reattach %s" % self.id
+            log.info("Detaching from instance with simulation running")
+            log.info("Reattach with: python mumax-ec2.py "
+                     "reattach %s" % self.id)
             return
 
         detach = self.wait_for_simulation(ssh, sftp)
 
-        print MUMAX_OUTPUT
-        print "Stopping port forwarding"
+        log.info(MUMAX_OUTPUT)
+        log.info("Stopping port forwarding")
         self.stop_port_forward()
 
         if detach:
@@ -204,7 +218,7 @@ class Instance(object):
         paths = self.paths(local_input_file)
 
         try:
-            print MUMAX_OUTPUT
+            log.info(MUMAX_OUTPUT)
 
             while not rexists(sftp, paths['log']):
                 sleep(0.1)  # Wait for log
@@ -213,25 +227,26 @@ class Instance(object):
             while not rexists(sftp, paths['finished']):
                 data = f.read()
                 if data != "":
+                    # TODO: Incorporate with logging module
                     print data,  # ending comma to prevent newline
             print f.read(),
 
         except KeyboardInterrupt:
-            print "\n\nCaught keyboard interrupt during simulation"
+            log.info("\n\nCaught keyboard interrupt during simulation")
             answer = raw_input("Detach, abort, or continue the "
                                "simulation? [Dac]: ")
             if len(answer) == 0 or answer.startswith(("D", "d")):
-                print "Detaching from instance with simulation running"
-                print ("Reattach with: python mumax-ec2.py"
-                       " reattach %s" % self.id)
+                log.info("Detaching from instance with simulation running")
+                log.info("Reattach with: python mumax-ec2.py"
+                         " reattach %s" % self.id)
                 return True
             elif answer.startswith(("A", "a")):
-                print "Aborting the simulation"
+                log.info("Aborting the simulation")
                 # Keyboard interrupt
                 ssh.exec_command("screen -S %s -X stuff $'\\003\r'" % SCREEN)
                 return False
             else:
-                print "Continuing the simulation"
+                log.info("Continuing the simulation")
                 return self.wait_for_simulation(ssh, sftp)
 
     def clean(self, ssh, sftp):
@@ -240,8 +255,8 @@ class Instance(object):
         local_input_file = self.tags['local_input_file']
         paths = self.paths(local_input_file)
 
-        if rexists(sftp, paths['local_output_dir']):
-            print "Receiving output files from instance"
+        if rexists(sftp, paths['output_dir']):
+            log.info("Receiving output files from instance")
             if not os.path.isdir(paths['local_output_dir']):
                 os.mkdir(paths['local_output_dir'])
             os.chdir(paths['local_output_dir'])
@@ -250,15 +265,15 @@ class Instance(object):
             for f in files:
                 sftp.get(f, f)
 
-            print "Removing simulation output from instance"
+            log.info("Removing simulation output from instance")
             ssh.exec_command("rm -r %s" % paths['output_dir'])
 
         if rexists(sftp, paths['input_file']):
-            print "Removing input file from instance"
+            log.info("Removing input file from instance")
             sftp.remove(paths['input_file'])
 
         if rexists(sftp, paths['log']):
-            print "Removing logs from instance"
+            log.info("Removing logs from instance")
             sftp.remove(paths['log'])
 
         if rexists(sftp, paths['finished']):
@@ -275,15 +290,15 @@ class Instance(object):
     def stop_or_terminate(self):
         answer = raw_input("Terminate the instance? [Yn]: ")
         if len(answer) == 0 or answer.startswith(("Y", "y")):
-            print "Terminating instance"
+            log.info("Terminating instance")
             self.terminate()
         else:
             answer = raw_input("Stop the instance? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
-                print "Stopping instance"
+                log.info("Stopping instance")
                 self.stop()
             else:
-                print "The instance has been left running"
+                log.info("The instance has been left running")
 
     def reattach(self):
         if 'local_input_file' in self.tags:
@@ -291,10 +306,11 @@ class Instance(object):
             port = int(self.tags['port'])
             paths = self.paths(local_input_file)
 
-            print "Reconnecting to running instance"
+            log.info("Reconnecting to running instance")
 
             try:
-                print "Making secure connection to instance %s..." % self.id
+                log.info("Making secure connection to instance "
+                         "%s..." % self.id)
                 ssh = paramiko.SSHClient()
                 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 ssh.connect(
@@ -304,20 +320,20 @@ class Instance(object):
                 )
                 sftp = ssh.open_sftp()
             except:
-                print "Could not connect to remote server"
+                log.error("Could not connect to remote server")
                 return
 
             if not rexists(sftp, paths['input_file']):
-                print "The input file has not been uploaded correctly"
+                log.info("The input file has not been uploaded correctly")
                 return
 
-            print "Starting port forwarding: http://127.0.0.1:%d" % port
+            log.info("Starting port forwarding: http://127.0.0.1:%d" % port)
             self.port_forward(port)
 
             disconnect = self.wait_for_simulation(ssh, sftp)
 
-            print MUMAX_OUTPUT
-            print "Stopping port forwarding"
+            log.info(MUMAX_OUTPUT)
+            log.info("Stopping port forwarding")
             self.stop_port_forward()
 
             if disconnect:
@@ -330,7 +346,7 @@ class Instance(object):
 
             self.stop_or_terminate()
         else:
-            print "Instance %s is not running a simulation" % self.id
+            log.info("Instance %s is not running a simulation" % self.id)
 
     def port_forward(self, port=PORT):
         key = paramiko.RSAKey.from_private_key_file(
@@ -420,7 +436,7 @@ class InstanceGroup(object):
         """
         ready_instances = [i for i in self.instances if i.is_ready()]
         if len(ready_instances) == 0:
-            print "There are no instances waiting to be used."
+            log.info("There are no instances waiting to be used.")
             answer = raw_input("Create a new instance for this "
                                "simulation? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
@@ -428,11 +444,11 @@ class InstanceGroup(object):
                 instance.wait_for_boot()
                 return instance
             else:
-                print "No instance will be launched"
+                log.info("No instance will be launched")
                 return None
         else:
             instance = ready_instances[0]  # Select the 1st ready instance
-            print "Instance %s is ready" % instance.id
+            log.info("Instance %s is ready" % instance.id)
             return instance
 
 ########################################
@@ -458,17 +474,17 @@ def reattach_instance(args):
         if instance.is_simulating():
             instance.reattach()
         else:
-            print "Instance %s is not running" % args.id[0]
+            log.info("Instance %s is not running" % args.id[0])
     else:
-        print "Instance %s is not a valid MuMax-EC2 instance" % args.id[0]
+        log.info("Instance %s is not a valid MuMax-EC2 instance" % args.id[0])
 
 
 def list_instances(args):
     group = InstanceGroup()
     instances = group.instances
     if len(instances) > 0:
-        print "MuMax-EC2 Instances:"
-        print "    ID\t\tIP\t\tState\t\tPort\t\tFile"
+        log.info("MuMax-EC2 Instances:")
+        log.info("    ID\t\tIP\t\tState\t\tPort\t\tFile")
         for instance in instances:
             if instance.ip is None:
                 ip = "None\t"
@@ -482,20 +498,20 @@ def list_instances(args):
                 mx3_file = os.path.basename(instance.tags['local_input_file'])
             else:
                 mx3_file = ''
-            print "    %s\t%s\t%s\t%s\t\t%s" % (
+            log.info("    %s\t%s\t%s\t%s\t\t%s" % (
                 instance.id,
                 ip,
                 instance.state,
                 port,
                 mx3_file
-            )
+            ))
 
     else:
-        print "No MuMax-EC2 instances currently running"
+        log.info("No MuMax-EC2 instances currently running")
 
 
 def launch_instance(args):
-    print "Creating a new instance of %s" % config.get('EC2', 'Image')
+    log.info("Creating a new instance of %s" % config.get('EC2', 'Image'))
     instance = Instance.launch()
     if args.wait:
         instance.wait_for_boot()
@@ -506,17 +522,17 @@ def terminate_instance(args):
     instance = group.by_id(args.id[0])
     if instance is not None:
         if instance.is_simulating():
-            print "This instance is currently running."
+            log.info("This instance is currently running.")
             answer = raw_input("Proceed to terminate the instance? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
                 instance.halt()
                 instance.clean()
             else:
                 return
-        print "Terminating instance %s" % instance.id
+        log.info("Terminating instance %s" % instance.id)
         instance.terminate()
     else:
-        print "Instance %s is not a valid MuMax-EC2 instance" % args.id[0]
+        log.info("Instance %s is not a valid MuMax-EC2 instance" % args.id[0])
 
 
 def stop_instance(args):
@@ -524,17 +540,17 @@ def stop_instance(args):
     instance = group.by_id(args.id[0])
     if instance is not None:
         if instance.is_simulating():
-            print "This instance is currently running."
+            log.info("This instance is currently running.")
             answer = raw_input("Proceed to stop the instance? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
                 instance.halt()
                 instance.clean()
             else:
                 return
-        print "Stopping instance %s" % instance.id
+        log.info("Stopping instance %s" % instance.id)
         instance.stop()
     else:
-        print "Instance %s is not a valid MuMax-EC2 instance" % args.id[0]
+        log.info("Instance %s is not a valid MuMax-EC2 instance" % args.id[0])
 
 
 def start_instance(args):
@@ -542,16 +558,16 @@ def start_instance(args):
     instance = group.by_id(args.id[0])
     if instance is not None:
         if instance.state == u'stopped':
-            print "Starting instance %s" % instance.id
+            log.info("Starting instance %s" % instance.id)
             instance.start()
             if args.wait:
-                print "Waiting for instance to boot..."
+                log.info("Waiting for instance to boot...")
                 instance.wait_for_boot()
         else:
-            print ("Instance %s is not in a state that can be "
-                   "started from" % args.id[0])
+            log.info("Instance %s is not in a state that can be "
+                     "started from" % args.id[0])
     else:
-        print "Instance %s is not a valid MuMax-EC2 instance" % args.id[0]
+        log.info("Instance %s is not a valid MuMax-EC2 instance" % args.id[0])
 
 
 if __name__ == '__main__':
