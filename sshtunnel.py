@@ -143,12 +143,7 @@ class SSHTunnelForwarder(threading.Thread):
         self._ssh_host_key = ssh_host_key
 
         self._transport = paramiko.Transport(ssh_address)
-        self._server = self.make_server(
-            self._remote_bind_address,
-            self._local_bind_address,
-            self._transport,
-            is_threading=threaded
-        )
+        self._server = self.make_server(threaded)
         self._is_started = False
         super(SSHTunnelForwarder, self).__init__()
 
