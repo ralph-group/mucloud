@@ -29,7 +29,7 @@ import boto.ec2
 import paramiko
 import os
 import sys
-from ttd import ttd
+from tqdm import tqdm
 from time import sleep
 from sshtunnel import SSHTunnelForwarder
 
@@ -272,7 +272,7 @@ class Instance(object):
             os.chdir(paths['local_output_dir'])
             sftp.chdir(paths['output_dir'])
             files = sftp.listdir()
-            for f in ttd(files):
+            for f in tqdm(files):
                 sftp.get(f, f)
 
             log.info("Removing simulation output from instance")
