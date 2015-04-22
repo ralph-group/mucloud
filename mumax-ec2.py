@@ -139,6 +139,20 @@ class Instance(object):
             'finished': "%s/finished" % directory,
         }
 
+    def connect(self):
+        """ Connects to the instance through SSH and SFTP
+        """
+        log.info("Making secure connection to instance %s..." % self.id)
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(
+            self.ip,
+            username=config.get('EC2', 'User'),
+            key_filename=config.get('EC2', 'PrivateKeyFile')
+        )
+        sftp = ssh.open_sftp()
+        return ssh, sftp
+
     def run(self, local_input_file, port=PORT, detach=False):
         """ Run the mumax input file on a ready instance """
 
@@ -147,15 +161,7 @@ class Instance(object):
                             self))
 
         try:
-            log.info("Making secure connection to instance %s..." % self.id)
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(
-                self.ip,
-                username=config.get('EC2', 'User'),
-                key_filename=config.get('EC2', 'PrivateKeyFile')
-            )
-            sftp = ssh.open_sftp()
+            ssh, sftp = self.connect()
         except:
             log.error("Could not connect to remote server")
             return
@@ -242,13 +248,16 @@ class Instance(object):
                          " reattach %s" % self.id)
                 return True
             elif answer.startswith(("A", "a")):
-                log.info("Aborting the simulation")
-                # Keyboard interrupt
-                ssh.exec_command("screen -S %s -X stuff $'\\003\r'" % SCREEN)
+                self.halt(ssh, sftp)
                 return False
             else:
                 log.info("Continuing the simulation")
                 return self.wait_for_simulation(ssh, sftp)
+
+    def halt(self, ssh, sftp):
+        log.info("Aborting the simulation")
+        # Keyboard interrupt the screen
+        ssh.exec_command("screen -S %s -X stuff $'\\003\r'" % SCREEN)
 
     def clean(self, ssh, sftp):
         """ Clean the instance when the simulation has been stopped
@@ -310,16 +319,7 @@ class Instance(object):
             log.info("Reconnecting to running instance")
 
             try:
-                log.info("Making secure connection to instance "
-                         "%s..." % self.id)
-                ssh = paramiko.SSHClient()
-                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                ssh.connect(
-                    self.ip,
-                    username=config.get('EC2', 'User'),
-                    key_filename=config.get('EC2', 'PrivateKeyFile')
-                )
-                sftp = ssh.open_sftp()
+                ssh, sftp = self.connect()
             except:
                 log.error("Could not connect to remote server")
                 return
@@ -526,8 +526,13 @@ def terminate_instance(args):
             log.info("This instance is currently running.")
             answer = raw_input("Proceed to terminate the instance? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
-                instance.halt()
-                instance.clean()
+                try:
+                    ssh, sftp = instance.connect()
+                except:
+                    log.error("Could not connect to remote server")
+                    return
+                instance.halt(ssh, sftp)
+                instance.clean(ssh, sftp)
             else:
                 return
         log.info("Terminating instance %s" % instance.id)
@@ -544,8 +549,13 @@ def stop_instance(args):
             log.info("This instance is currently running.")
             answer = raw_input("Proceed to stop the instance? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
-                instance.halt()
-                instance.clean()
+                try:
+                    ssh, sftp = instance.connect()
+                except:
+                    log.error("Could not connect to remote server")
+                    return
+                instance.halt(ssh, sftp)
+                instance.clean(ssh, sftp)
             else:
                 return
         log.info("Stopping instance %s" % instance.id)
