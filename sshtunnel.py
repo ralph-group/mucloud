@@ -1,6 +1,6 @@
 """
 
-This file is part of the MuMax-EC2 package, but is based on the
+This file is part of the MuCloud package, but is based on the
 sshtunnel Python package: https://pypi.python.org/pypi/sshtunnel/
 
 Copyright (c) 2014-2015 Colin Jermain, Graham Rowlands

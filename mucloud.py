@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 
-This file is part of the MuMax-EC2 package.
+This file is part of the MuCloud package.
 
 Copyright (c) 2014-2015 Colin Jermain, Graham Rowlands
 
@@ -415,7 +415,7 @@ class Instance(object):
         return instance
 
     def __repr__(self):
-        return "<MuMax-EC2 Instance(id='%s')>" % self.id
+        return "<MuCloud Instance(id='%s')>" % self.id
 
 
 class InstanceGroup(object):
@@ -483,14 +483,14 @@ def reattach_instance(args):
         else:
             log.info("Instance %s is not running" % args.id[0])
     else:
-        log.info("Instance %s is not a valid MuMax-EC2 instance" % args.id[0])
+        log.info("Instance %s is not a valid MuCloud instance" % args.id[0])
 
 
 def list_instances(args):
     group = InstanceGroup()
     instances = group.instances
     if len(instances) > 0:
-        log.info("MuMax-EC2 Instances:")
+        log.info("MuCloud Instances:")
         log.info("    ID\t\tIP\t\tState\t\tPort\t\tFile")
         for instance in instances:
             if instance.ip is None:
@@ -514,7 +514,7 @@ def list_instances(args):
             ))
 
     else:
-        log.info("No MuMax-EC2 instances currently running")
+        log.info("No MuCloud instances currently running")
 
 
 def launch_instance(args):
@@ -543,7 +543,7 @@ def terminate_instance(args):
         log.info("Terminating instance %s" % instance.id)
         instance.terminate()
     else:
-        log.info("Instance %s is not a valid MuMax-EC2 instance" % args.id[0])
+        log.info("Instance %s is not a valid MuCloud instance" % args.id[0])
 
 
 def stop_instance(args):
@@ -566,7 +566,7 @@ def stop_instance(args):
         log.info("Stopping instance %s" % instance.id)
         instance.stop()
     else:
-        log.info("Instance %s is not a valid MuMax-EC2 instance" % args.id[0])
+        log.info("Instance %s is not a valid MuCloud instance" % args.id[0])
 
 
 def start_instance(args):
@@ -583,7 +583,7 @@ def start_instance(args):
             log.info("Instance %s is not in a state that can be "
                      "started from" % args.id[0])
     else:
-        log.info("Instance %s is not a valid MuMax-EC2 instance" % args.id[0])
+        log.info("Instance %s is not a valid MuCloud instance" % args.id[0])
 
 
 if __name__ == '__main__':
