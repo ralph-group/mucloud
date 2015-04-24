@@ -17,7 +17,7 @@ Errors should be reported through GitHub on our [Issues page](https://github.com
 Open a terminal or command prompt and change the directory to where you have stored the MuCloud software. First lets start by accessing the help menu, where you can look for assistance on the command syntax.
 
 ```bash
-$ python mucloud --help
+$ python mucloud.py --help
 usage: mucloud.py [-h] {run,list,launch,terminate,stop,start,reattach} ...
 
 Runs MuMax3 .mx3 files on Amazon Web Services (AWS) instances
