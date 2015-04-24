@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+
+        <title>Install on Windows - MuMax-EC2</title>
+
+        <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../css/font-awesome-4.0.3.css" rel="stylesheet">
+        <link href="../css/prettify-1.0.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+    </head>
+
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+
+            <!-- Main title -->
+            <a class="navbar-brand" href="..">MuMax-EC2</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+            <!-- Main navigation -->
+            <ul class="nav navbar-nav">
+            
+            
+                <li class="dropdown active">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Installing <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                    
+                        <li >
+                            <a href="../install_linux">Install on Linux</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../install_mac">Install on MacOSX</a>
+                        </li>
+                    
+                        <li class="active">
+                            <a href=".">Install on Windows</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../setup_aws">Setting up AWS</a>
+                        </li>
+                    
+                    </ul>
+                </li>
+            
+            
+            
+                <li >
+                    <a href="../tutorial">Tutorial</a>
+                </li>
+            
+            
+            
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">About <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                    
+                        <li >
+                            <a href="../license">License</a>
+                        </li>
+                    
+                    </ul>
+                </li>
+            
+            
+            </ul>
+
+            <!-- Search, Navigation and Repo links -->
+            <ul class="nav navbar-nav navbar-right">
+                
+                <li >
+                    <a rel="next" href="../install_mac">
+                        <i class="fa fa-arrow-left"></i> Previous
+                    </a>
+                </li>
+                <li >
+                    <a rel="prev" href="../setup_aws">
+                        Next <i class="fa fa-arrow-right"></i>
+                    </a>
+                </li>
+                
+            </ul>
+        </div>
+    </div>
+</div>
+
+        <div class="container">
+            <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+    
+        <li class="main active"><a href="#installing-on-windows">Installing on Windows</a></li>
+        
+            <li><a href="#installing-python">Installing Python</a></li>
+        
+            <li><a href="#installing-mumax-ec2">Installing MuMax-EC2</a></li>
+        
+    
+    </ul>
+</div></div>
+            <div class="col-md-9" role="main">
+
+<h2 id="installing-on-windows">Installing on Windows</h2>
+<p>Instructions for installing the necessary Python libraries and MuMax-EC2 on Windows are provided.</p>
+<h3 id="installing-python">Installing Python</h3>
+<p>Download the latest release of <a href="https://www.python.org/downloads/">Python 2.7</a> (currently 2.7.9 as of 1/23/15). Version 2.7.9 comes with the pip installer, which is required for installing the necessary libraries. If you already have Python 2.7 and want to install pip separately, follow <a href="https://pip.pypa.io/en/latest/installing.html#install-pip">these instructions</a>.</p>
+<p>In the Python 2.7 installer, under "Customize Python 2.7", ensure "Add python.exe to path" is included.</p>
+<p><img src="../windows_1.png" height="250" style="border: solid 1px #333333; padding: 4px;" /></p>
+<p>Download and install the <a href="http://www.microsoft.com/en-in/download/confirmation.aspx?id=44266">Microsoft Visual C++ Compiler for Python 2.7</a>. This allows the Python pip installer to compile required C/C++ code that is included in some Python packages.</p>
+<p>Restart your computer.</p>
+<p>Open the command prompt (cmd) and verify that Python is installed properly.</p>
+<pre><code class="dos">python
+</code></pre>
+
+<p><img src="../windows_2.png" height="250" style="border: solid 1px #333333; padding: 4px;" /></p>
+<p>To exit the Python interpreter type <code>exit()</code>.</p>
+<p>Now you have the required Python environment.</p>
+<h3 id="installing-mumax-ec2">Installing MuMax-EC2</h3>
+<p>First, download the <a href="https://github.com/ralph-group/MuMax-EC2/releases">latest release from GitHub</a>. Extract the files in a good place and open a command prompt in that directory.</p>
+<pre><code class="dos">cd C:\path\to\mumax-ec2
+</code></pre>
+
+<p>Use the pip installer to install the required Python packages.</p>
+<pre><code class="bash">pip install -r requirements.txt
+</code></pre>
+
+<p>Now you have MuMax-EC2 installed. The next step is to <a href="../setup_aws">set up the configuration file</a> with your AWS settings to allow access to your account.</p>
+</div>
+        </div>
+
+        
+
+        <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+        <script src="../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../js/prettify-1.0.min.js"></script>
+        <script src="../js/base.js"></script>
+    </body>
+</html>
