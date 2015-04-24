@@ -1,4 +1,4 @@
-site_name: MuMax-EC2
+site_name: MuCloud
 pages:
 - ['index.md', 'Introduction']
 - ['install_linux.md', 'Installing', 'Install on Linux']

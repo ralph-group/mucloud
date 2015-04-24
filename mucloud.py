@@ -51,7 +51,7 @@ __version__ = 1.1
 
 PORT = 35367
 MUMAX_OUTPUT = "=" * 20 + " MuMax3 output " + "=" * 20
-SCREEN = "mumax-ec2"
+SCREEN = "mucloud"
 
 config = ConfigParser.ConfigParser()
 config.read(os.path.dirname(os.path.realpath(__file__))+"/config.ini")
@@ -89,7 +89,7 @@ class Instance(object):
         self.add_ready_tags()
 
     def add_ready_tags(self):
-        self._instance.add_tag('mumax-ec2', __version__)
+        self._instance.add_tag('mucloud', __version__)
 
     def stop(self):
         aws.stop_instances(instance_ids=[self.id])
@@ -200,7 +200,7 @@ class Instance(object):
             log.info("Stopping port forwarding")
             self.stop_port_forward()
             log.info("Detaching from instance with simulation running")
-            log.info("Reattach with: python mumax-ec2.py "
+            log.info("Reattach with: python mucloud.py "
                      "reattach %s" % self.id)
             return
 
@@ -244,7 +244,7 @@ class Instance(object):
                                "simulation? [Dac]: ")
             if len(answer) == 0 or answer.startswith(("D", "d")):
                 log.info("Detaching from instance with simulation running")
-                log.info("Reattach with: python mumax-ec2.py"
+                log.info("Reattach with: python mucloud.py"
                          " reattach %s" % self.id)
                 return True
             elif answer.startswith(("A", "a")):
@@ -393,8 +393,8 @@ class Instance(object):
     @staticmethod
     def has_mumax(aws_instance):
         return (
-            'mumax-ec2' in aws_instance.tags and
-            aws_instance.tags['mumax-ec2'] == str(__version__) and
+            'mucloud' in aws_instance.tags and
+            aws_instance.tags['mucloud'] == str(__version__) and
             aws_instance.state != u'terminated'
         )
 
