@@ -1,6 +1,6 @@
 ## Installing on Windows ##
 
-Instructions for installing the necessary Python libraries and MuMax-EC2 on Windows are provided.
+Instructions for installing the necessary Python libraries and MuCloud on Windows are provided.
 
 ### Installing Python ###
 Download the latest release of [Python 2.7](https://www.python.org/downloads/) (currently 2.7.9 as of 1/23/15). Version 2.7.9 comes with the pip installer, which is required for installing the necessary libraries. If you already have Python 2.7 and want to install pip separately, follow [these instructions](https://pip.pypa.io/en/latest/installing.html#install-pip).
@@ -26,11 +26,11 @@ To exit the Python interpreter type `exit()`.
 Now you have the required Python environment.
 
 
-### Installing MuMax-EC2 ###
-First, download the [latest release from GitHub](https://github.com/ralph-group/MuMax-EC2/releases). Extract the files in a good place and open a command prompt in that directory.
+### Installing MuCloud ###
+First, download the [latest release from GitHub](https://github.com/ralph-group/mucloud/releases). Extract the files in a good place and open a command prompt in that directory.
 
 ```dos
-cd C:\path\to\mumax-ec2
+cd C:\path\to\mucloud
 ```
 
 Use the pip installer to install the required Python packages.
@@ -39,4 +39,4 @@ Use the pip installer to install the required Python packages.
 pip install -r requirements.txt
 ```
 
-Now you have MuMax-EC2 installed. The next step is to [set up the configuration file](setup_aws.md) with your AWS settings to allow access to your account.
+Now you have MuCloud installed. The next step is to [set up the configuration file](setup_aws.md) with your AWS settings to allow access to your account.

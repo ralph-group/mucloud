@@ -1,20 +1,20 @@
 ## Installing on MacOSX ##
 
-Instructions for installing the necessary Python libraries and MuMax-EC2 on MacOSX are provided.
+Instructions for installing the necessary Python libraries and MuCloud on MacOSX are provided.
 
 ### Installing Python ###
 
-OS X Mavericks ships with Python 2.7.5, and OS X Yosemite with 2.7.6. Either version is capable of running MuMax-EC2, though both will require that you manually install pip according to [these instructions](https://pip.pypa.io/en/latest/installing.html#install-pip). In order to separate the system python packages from those you are about to install, you may consider using a [virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/). 
+OS X Mavericks ships with Python 2.7.5, and OS X Yosemite with 2.7.6. Either version is capable of running MuCloud, though both will require that you manually install pip according to [these instructions](https://pip.pypa.io/en/latest/installing.html#install-pip). In order to separate the system python packages from those you are about to install, you may consider using a [virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/). 
 
 ### Installing XCode ###
 
 The [XCode development environment](https://developer.apple.com/xcode/downloads/) is required for compilation of C/C++ code included in many Python packages. It can be installed from the App Store. 
 
-### Installing MuMax-EC2 ###
-First, download the [latest release from GitHub](https://github.com/ralph-group/MuMax-EC2/releases). Extract the files in a good place and open a terminal in that directory.
+### Installing MuCloud ###
+First, download the [latest release from GitHub](https://github.com/ralph-group/mucloud/releases). Extract the files in a good place and open a terminal in that directory.
 
 ```bash
-cd /path/to/mumax-ec2
+cd /path/to/mucloud
 ```
 
 Use the pip installer to install the required Python packages. Depending on which Python distribution you are using, you make have to preface the `pip` commands with `sudo` (though you may once again consider a virtual environment.)
@@ -38,4 +38,4 @@ Finally, change the permissions on `config.ini` to prevent others from reading i
 chmod 500 config.ini
 ```
 
-Now you have MuMax-EC2 installed. The next step is to [set up the configuration file](setup_aws.md) with your AWS settings to allow access to your account.
+Now you have MuCloud installed. The next step is to [set up the configuration file](setup_aws.md) with your AWS settings to allow access to your account.
