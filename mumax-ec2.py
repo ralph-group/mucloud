@@ -408,6 +408,8 @@ class Instance(object):
             security_groups=config.get('EC2', 'SecurityGroups').split(',')
         )
         instance = Instance(reservation.instances[0])
+        log.info("Creating a new instance %s from image %s" % (
+            instance.id, config.get('EC2', 'Image')))
         sleep(1)
         instance.add_ready_tags()
         return instance
@@ -443,6 +445,7 @@ class InstanceGroup(object):
             if len(answer) == 0 or answer.startswith(("Y", "y")):
                 instance = Instance.launch()
                 instance.wait_for_boot()
+                log.info("Instance %s is ready" % instance.id)
                 return instance
             else:
                 log.info("No instance will be launched")
@@ -458,6 +461,9 @@ class InstanceGroup(object):
 
 
 def run_instance(args):
+    if not os.path.isfile(args.filename[0]):
+        print "The specified .mx3 file does not exist"
+        return
     group = InstanceGroup()
     instance = group.ready_instance()
     if instance is not None:
@@ -512,7 +518,6 @@ def list_instances(args):
 
 
 def launch_instance(args):
-    log.info("Creating a new instance of %s" % config.get('EC2', 'Image'))
     instance = Instance.launch()
     if args.wait:
         instance.wait_for_boot()

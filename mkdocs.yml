@@ -6,6 +6,5 @@ pages:
 - ['install_windows.md', 'Installing', 'Install on Windows']
 - ['setup_aws.md', 'Installing', 'Setting up AWS']
 - ['tutorial.md', 'Tutorial']
-- ['manual.md', 'Manual']
 - ['license.md', 'About', 'License']
-theme: flatly
+theme: cerulean
