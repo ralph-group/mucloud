@@ -136,7 +136,7 @@ The data files have already been transfered to the same directory that contained
 
 ### Listing instances ###
 
-The importance of knowing what instances are running and which are stopped prompted the `list` command. This allows you to examine the AWS ID, IP addresses, state of instances, including the port and file of running simulations.
+You can list which instances are running and which are stopped by using the `list` command. This allows you to examine the AWS ID, IP addresses, and the state of instances, including the port and file of running simulations.
 
 ```bash
 $ python mucloud.py list
