@@ -12,7 +12,7 @@ First, download the [latest release from GitHub](https://github.com/ralph-group/
 cd /path/to/mucloud
 ```
 
-Use the pip installer to install the required Python packages. Optionally, a [virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/) can be used to separate the system packages from the packages. Preface the `pip` commands with `sudo` if you are not using a virtual environment.
+Use the pip installer to install the required Python packages. Optionally, a [virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/) can be used to separate the system packages from MuCloud dependencies. Preface the `pip` commands with `sudo` if you are not using a virtual environment.
 
 ```bash
 sudo pip install -r requirements.txt
