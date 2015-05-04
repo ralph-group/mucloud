@@ -58,6 +58,6 @@ From EC2, choose Security Groups > Create Security Group.
 
 Set the security group name to "mucloud", and update `config.ini` (`SecurityGroups`) with this name. A description is required by AWS. On the Inbound tab > Add Rule > "Type: SSH".
 
-> For the best security, choose "Source: My IP". Note that if your IP changes, you will have to edit the security group again to update the IP. Alternatively "Source: Anywhere" can be used.
+For the best security, choose "Source: My IP". Note that if your IP changes, **you will have to edit the security group again to update the IP.** Alternatively "Source: Anywhere" can be used.
 
 After you create the security group, your AWS account has been set up properly and your `config.ini` file has been updated. The next step is to start using MuCloud, or [follow the tutorial](tutorial.md) to get started.
