@@ -9,7 +9,7 @@
         
         <link rel="shortcut icon" href="../img/favicon.ico">
 
-        <title>Install on Windows - MuMax-EC2</title>
+        <title>Install on Windows - MuCloud</title>
 
         <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
         <link href="../css/font-awesome-4.0.3.css" rel="stylesheet">
@@ -39,7 +39,7 @@
             </button>
 
             <!-- Main title -->
-            <a class="navbar-brand" href="..">MuMax-EC2</a>
+            <a class="navbar-brand" href="..">MuCloud</a>
         </div>
 
         <!-- Expanded navigation -->
@@ -120,7 +120,7 @@
         
             <li><a href="#installing-python">Installing Python</a></li>
         
-            <li><a href="#installing-mumax-ec2">Installing MuMax-EC2</a></li>
+            <li><a href="#installing-mucloud">Installing MuCloud</a></li>
         
     
     </ul>
@@ -128,7 +128,7 @@
             <div class="col-md-9" role="main">
 
 <h2 id="installing-on-windows">Installing on Windows</h2>
-<p>Instructions for installing the necessary Python libraries and MuMax-EC2 on Windows are provided.</p>
+<p>Instructions for installing the necessary Python libraries and MuCloud on Windows are provided.</p>
 <h3 id="installing-python">Installing Python</h3>
 <p>Download the latest release of <a href="https://www.python.org/downloads/">Python 2.7</a> (currently 2.7.9 as of 1/23/15). Version 2.7.9 comes with the pip installer, which is required for installing the necessary libraries. If you already have Python 2.7 and want to install pip separately, follow <a href="https://pip.pypa.io/en/latest/installing.html#install-pip">these instructions</a>.</p>
 <p>In the Python 2.7 installer, under "Customize Python 2.7", ensure "Add python.exe to path" is included.</p>
@@ -142,16 +142,16 @@
 <p><img src="../windows_2.png" height="250" style="border: solid 1px #333333; padding: 4px;" /></p>
 <p>To exit the Python interpreter type <code>exit()</code>.</p>
 <p>Now you have the required Python environment.</p>
-<h3 id="installing-mumax-ec2">Installing MuMax-EC2</h3>
-<p>First, download the <a href="https://github.com/ralph-group/MuMax-EC2/releases">latest release from GitHub</a>. Extract the files in a good place and open a command prompt in that directory.</p>
-<pre><code class="dos">cd C:\path\to\mumax-ec2
+<h3 id="installing-mucloud">Installing MuCloud</h3>
+<p>First, download the <a href="https://github.com/ralph-group/mucloud/releases">latest release from GitHub</a>. Extract the files in a good place and open a command prompt in that directory.</p>
+<pre><code class="dos">cd C:\path\to\mucloud
 </code></pre>
 
-<p>Use the pip installer to install the required Python packages.</p>
+<p>Use the pip installer to install the required Python packages. Optionally, a <a href="http://docs.python-guide.org/en/latest/dev/virtualenvs/">virtual environment</a> can be used to separate the system packages from MuCloud dependencies.</p>
 <pre><code class="bash">pip install -r requirements.txt
 </code></pre>
 
-<p>Now you have MuMax-EC2 installed. The next step is to <a href="../setup_aws">set up the configuration file</a> with your AWS settings to allow access to your account.</p>
+<p>Now you have MuCloud installed. The next step is to <a href="../setup_aws">set up the configuration file</a> with your AWS settings to allow access to your account.</p>
 </div>
         </div>
 

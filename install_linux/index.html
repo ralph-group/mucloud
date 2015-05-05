@@ -9,7 +9,7 @@
         
         <link rel="shortcut icon" href="../img/favicon.ico">
 
-        <title>Install on Linux - MuMax-EC2</title>
+        <title>Install on Linux - MuCloud</title>
 
         <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
         <link href="../css/font-awesome-4.0.3.css" rel="stylesheet">
@@ -39,7 +39,7 @@
             </button>
 
             <!-- Main title -->
-            <a class="navbar-brand" href="..">MuMax-EC2</a>
+            <a class="navbar-brand" href="..">MuCloud</a>
         </div>
 
         <!-- Expanded navigation -->
@@ -120,7 +120,7 @@
         
             <li><a href="#installing-python">Installing Python</a></li>
         
-            <li><a href="#installing-mumax-ec2">Installing MuMax-EC2</a></li>
+            <li><a href="#installing-mucloud">Installing MuCloud</a></li>
         
     
     </ul>
@@ -128,23 +128,23 @@
             <div class="col-md-9" role="main">
 
 <h2 id="installing-on-linux">Installing on Linux</h2>
-<p>Instructions for installing the necessary Python libraries and MuMax-EC2 on Linux are provided.</p>
+<p>Instructions for installing the necessary Python libraries and MuCloud on Linux are provided.</p>
 <h3 id="installing-python">Installing Python</h3>
 <p>Python 2.7 is usually already installed through a system package (<code>python</code> on Ubuntu). Alternatively it can be installed from the <a href="https://www.python.org/downloads/">latest source release</a>. The <a href="https://pip.pypa.io/en/latest/installing.html">pip installer</a> is required, which may need to be installed seperately (<code>python-pip</code> on Ubuntu).</p>
-<h3 id="installing-mumax-ec2">Installing MuMax-EC2</h3>
-<p>First, download the <a href="https://github.com/ralph-group/MuMax-EC2/releases">latest release from GitHub</a>. Extract the files in a good place and open a terminal in that directory.</p>
-<pre><code class="bash">cd /path/to/mumax-ec2
+<h3 id="installing-mucloud">Installing MuCloud</h3>
+<p>First, download the <a href="https://github.com/ralph-group/mucloud/releases">latest release from GitHub</a>. Extract the files in a good place and open a terminal in that directory.</p>
+<pre><code class="bash">cd /path/to/mucloud
 </code></pre>
 
-<p>Use the pip installer to install the required Python packages.</p>
-<pre><code class="bash">pip install -r requirements.txt
+<p>Use the pip installer to install the required Python packages. Optionally, a <a href="http://docs.python-guide.org/en/latest/dev/virtualenvs/">virtual environment</a> can be used to separate the system packages from MuCloud dependencies. Preface the <code>pip</code> commands with <code>sudo</code> if you are not using a virtual environment.</p>
+<pre><code class="bash">sudo pip install -r requirements.txt
 </code></pre>
 
 <p>Change the permissions on <code>config.ini</code> to prevent others from reading it.</p>
 <pre><code class="bash">chmod 500 config.ini
 </code></pre>
 
-<p>Now you have MuMax-EC2 installed. The next step is to <a href="../setup_aws">set up the configuration file</a> with your AWS settings to allow access to your account.</p>
+<p>Now you have MuCloud installed. The next step is to <a href="../setup_aws">set up the configuration file</a> with your AWS settings to allow access to your account.</p>
 </div>
         </div>
 

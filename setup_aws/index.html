@@ -9,7 +9,7 @@
         
         <link rel="shortcut icon" href="../img/favicon.ico">
 
-        <title>Setting up AWS - MuMax-EC2</title>
+        <title>Setting up AWS - MuCloud</title>
 
         <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
         <link href="../css/font-awesome-4.0.3.css" rel="stylesheet">
@@ -39,7 +39,7 @@
             </button>
 
             <!-- Main title -->
-            <a class="navbar-brand" href="..">MuMax-EC2</a>
+            <a class="navbar-brand" href="..">MuCloud</a>
         </div>
 
         <!-- Expanded navigation -->
@@ -130,7 +130,7 @@
             <div class="col-md-9" role="main">
 
 <h2 id="setting-up-aws">Setting up AWS</h2>
-<p>Instructions for setting up your Amazon Web Services (AWS) account to use with MuMax-EC2 are provided.</p>
+<p>Instructions for setting up your Amazon Web Services (AWS) account to use with MuCloud are provided.</p>
 <h3 id="making-a-user">Making a user</h3>
 <p>Begin by <a href="https://console.aws.amazon.com/console/home">signing up</a> for an Amazon Web Services account.</p>
 <p><img src="../aws_1.png" height="250" style="border: solid 1px #333333; padding: 4px;" /></p>
@@ -138,34 +138,32 @@
 <p><img src="../aws_2.png" height="250" style="border: solid 1px #333333; padding: 4px;" /></p>
 <p>Choose IAM (Identity and Access Management) &gt; Users &gt; Create New Users.</p>
 <p><img src="../aws_3.png" height="250" style="border: solid 1px #333333; padding: 4px;" /></p>
-<p>Create a user "mumax-ec2" (leave "Generate access key for each user" checked). Show the User Security Credentials, and copy the "Access Key ID" (<code>AccessID</code>) and "Secret Access Key" (<code>SecretKey</code>) into the MuMax-EC2 <code>config.ini</code> that came with the latest release. </p>
+<p>Create a user "mucloud" (leave "Generate access key for each user" checked). Show the User Security Credentials, and copy the "Access Key ID" (<code>AccessID</code>) and "Secret Access Key" (<code>SecretKey</code>) into the MuCloud <code>config.ini</code> that came with the latest release. </p>
 <p><img src="../aws_4.png" height="250" style="border: solid 1px #333333; padding: 4px;" /></p>
 <p>Download the credentials and keep them in a safe place. Close to return to the Users menu.</p>
-<p>Under Users &gt; mumax-ec2, Attach User Policy.</p>
+<p>Under Users &gt; mucloud, Attach User Policy.</p>
 <p><img src="../aws_5.png" height="250" style="border: solid 1px #333333; padding: 4px;" /></p>
-<p>Search and select "AmazonEC2FullAccess". Attach this policy to the "mumax-ec2" user.</p>
+<p>Search and select "AmazonEC2FullAccess". Attach this policy to the "mucloud" user.</p>
 <p><img src="../aws_6.png" height="250" style="border: solid 1px #333333; padding: 4px;" /></p>
 <blockquote>
-<p>Now your "mumax-ec2" user has been created and has full permission to use EC2, without allowing access to any other AWS services for security reasons.</p>
+<p>Now your "mucloud" user has been created and has full permission to use EC2, without allowing access to any other AWS services for security reasons.</p>
 </blockquote>
 <h3 id="getting-a-private-key">Getting a private key</h3>
 <p>From the AWS Console, open up EC2.</p>
 <p><img src="../aws_2.png" height="250" style="border: solid 1px #333333; padding: 4px;" /></p>
-<p>Choose Key Pairs &gt; Create Key Pair. Create a key pair with name "mumax-ec2", and update <code>config.ini</code> (<code>PrivateKeyName</code>) with this name.</p>
+<p>Choose Key Pairs &gt; Create Key Pair. Create a key pair with name "mucloud", and update <code>config.ini</code> (<code>PrivateKeyName</code>) with this name.</p>
 <p><img src="../aws_7.png" height="250" style="border: solid 1px #333333; padding: 4px;" /></p>
 <p>Download the <code>.pem</code> file and save it to a safe place. On Linux and MacOSX change the permissions of the <code>.pem</code> file to prevent others from reading it.</p>
-<pre><code class="bash">chmod 500 mumax-ec2.pem
+<pre><code class="bash">chmod 500 mucloud.pem
 </code></pre>
 
 <p>Update <code>config.ini</code> with the path of the <code>.pem</code> private key (<code>PrivateKeyFile</code>). Now you have a private key with which you can connect to your instance with SSH.</p>
 <h3 id="creating-a-security-group">Creating a security group</h3>
 <p>From EC2, choose Security Groups &gt; Create Security Group.</p>
 <p><img src="../aws_8.png" height="250" style="border: solid 1px #333333; padding: 4px;" /></p>
-<p>Set the security group name to "mumax-ec2", and update <code>config.ini</code> (<code>SecurityGroups</code>) with this name. A description is required by AWS. On the Inbound tab &gt; Add Rule &gt; "Type: SSH".</p>
-<blockquote>
-<p>For the best security, choose "Source: My IP". Note that if your IP changes, you will have to edit the security group again to update the IP. Alternatively "Source: Anywhere" can be used.</p>
-</blockquote>
-<p>After you create the security group, your AWS account has been set up properly and your <code>config.ini</code> file has been updated. The next step is to start using MuMax-EC2, or <a href="../tutorial">follow the tutorial</a> to get started.</p>
+<p>Set the security group name to "mucloud", and update <code>config.ini</code> (<code>SecurityGroups</code>) with this name. A description is required by AWS. On the Inbound tab &gt; Add Rule &gt; "Type: SSH".</p>
+<p>For the best security, choose "Source: My IP". Note that if your IP changes, <strong>you will have to edit the security group again to update the IP.</strong> Alternatively "Source: Anywhere" can be used.</p>
+<p>After you create the security group, your AWS account has been set up properly and your <code>config.ini</code> file has been updated. The next step is to start using MuCloud, or <a href="../tutorial">follow the tutorial</a> to get started.</p>
 </div>
         </div>
 
