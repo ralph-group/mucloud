@@ -62,8 +62,25 @@ PORT = 35367
 MUMAX_OUTPUT = "=" * 20 + " MuMax3 output " + "=" * 20
 SCREEN = "mucloud"
 
+CONFIG_FILE = os.path.join(os.path.dirname(
+        os.path.realpath(__file__)), "config.ini")
+
+if not os.path.exists(CONFIG_FILE):
+    raise IOError("Configuration file (config.ini) not found"
+                  " in the mucloud path")
+
 config = configparser.ConfigParser()
-config.read(os.path.dirname(os.path.realpath(__file__))+"/config.ini")
+config.read(CONFIG_FILE)
+
+# Check the configuration settings are not empty
+config_settings = [
+    'User', 'Image', 'InstanceType', 'Region',
+    'AccessID', 'SecretKey', 'PrivateKeyFile', 
+    'PrivateKeyName', 'SecurityGroups'
+]
+for setting in config_settings:
+    if config.get('EC2', setting) == '':
+        raise ValueError("The config.ini setting '%s' is empty" % setting)
 
 # Connect to Amazon Web Services (AWS)
 aws = boto.ec2.connect_to_region(
