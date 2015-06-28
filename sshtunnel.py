@@ -26,14 +26,17 @@ THE SOFTWARE.
 
 """
 
-import SocketServer
+try:
+    import SocketServer as socketserver # Python 2.7
+except ImportError:
+    import socketserver # Python 3.x
 import select
 import threading
 import logging
 import paramiko
 
 
-class _BaseHandler(SocketServer.BaseRequestHandler):
+class _BaseHandler(socketserver.BaseRequestHandler):
     remote_address = None
     ssh_transport = None
     logger = None
@@ -77,7 +80,7 @@ class _BaseHandler(SocketServer.BaseRequestHandler):
         self.logger.info('Tunnel closed.')
 
 
-class _ForwardServer(SocketServer.TCPServer):  # Not Threading
+class _ForwardServer(socketserver.TCPServer):  # Not Threading
     allow_reuse_address = True
 
     @property
@@ -89,7 +92,7 @@ class _ForwardServer(SocketServer.TCPServer):  # Not Threading
         return self.socket.getsockname()[0]
 
 
-class _ThreadingForwardServer(SocketServer.ThreadingMixIn, _ForwardServer):
+class _ThreadingForwardServer(socketserver.ThreadingMixIn, _ForwardServer):
     daemon_threads = False
 
 

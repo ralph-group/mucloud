@@ -25,6 +25,12 @@ THE SOFTWARE.
 
 """
 
+from __future__ import print_function
+try:
+    input = raw_input # Python 2.7
+except:
+    from builtins import input # Python 3.x
+
 import boto.ec2
 import paramiko
 import os
@@ -34,7 +40,10 @@ from time import sleep
 from sshtunnel import SSHTunnelForwarder
 
 import argparse
-import ConfigParser
+try:
+    import ConfigParser as configparser # Python 2.7
+except ImportError:
+    import configparser # Python 3.x
 
 import logging
 log = logging.getLogger(__name__)
@@ -53,7 +62,7 @@ PORT = 35367
 MUMAX_OUTPUT = "=" * 20 + " MuMax3 output " + "=" * 20
 SCREEN = "mucloud"
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read(os.path.dirname(os.path.realpath(__file__))+"/config.ini")
 
 # Connect to Amazon Web Services (AWS)
@@ -67,8 +76,8 @@ aws = boto.ec2.connect_to_region(
 def rexists(sftp, path):
     try:
         sftp.stat(path)
-    except IOError, e:
-        if e[0] == 2:
+    except IOError as e:
+        if 'No such file' in str(e):
             return False
         raise
     else:
@@ -235,12 +244,12 @@ class Instance(object):
                 data = f.read()
                 if data != "":
                     # TODO: Incorporate with logging module
-                    print data,  # ending comma to prevent newline
-            print f.read(),
+                    print(data.decode('utf8'), end='')  # end argument to prevent newline
+            print(f.read().decode('utf8'), end='')
 
         except KeyboardInterrupt:
             log.info("\n\nCaught keyboard interrupt during simulation")
-            answer = raw_input("Detach, abort, or continue the "
+            answer = input("Detach, abort, or continue the "
                                "simulation? [Dac]: ")
             if len(answer) == 0 or answer.startswith(("D", "d")):
                 log.info("Detaching from instance with simulation running")
@@ -298,12 +307,12 @@ class Instance(object):
         })
 
     def stop_or_terminate(self):
-        answer = raw_input("Terminate the instance? [Yn]: ")
+        answer = input("Terminate the instance? [Yn]: ")
         if len(answer) == 0 or answer.startswith(("Y", "y")):
             log.info("Terminating instance")
             self.terminate()
         else:
-            answer = raw_input("Stop the instance? [Yn]: ")
+            answer = input("Stop the instance? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
                 log.info("Stopping instance")
                 self.stop()
@@ -440,7 +449,7 @@ class InstanceGroup(object):
         ready_instances = [i for i in self.instances if i.is_ready()]
         if len(ready_instances) == 0:
             log.info("There are no instances waiting to be used.")
-            answer = raw_input("Create a new instance for this "
+            answer = input("Create a new instance for this "
                                "simulation? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
                 instance = Instance.launch()
@@ -462,7 +471,7 @@ class InstanceGroup(object):
 
 def run_instance(args):
     if not os.path.isfile(args.filename[0]):
-        print "The specified .mx3 file does not exist"
+        log.info("The specified .mx3 file does not exist")
         return
     group = InstanceGroup()
     instance = group.ready_instance()
@@ -529,7 +538,7 @@ def terminate_instance(args):
     if instance is not None:
         if instance.is_simulating():
             log.info("This instance is currently running.")
-            answer = raw_input("Proceed to terminate the instance? [Yn]: ")
+            answer = input("Proceed to terminate the instance? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
                 try:
                     ssh, sftp = instance.connect()
@@ -552,7 +561,7 @@ def stop_instance(args):
     if instance is not None:
         if instance.is_simulating():
             log.info("This instance is currently running.")
-            answer = raw_input("Proceed to stop the instance? [Yn]: ")
+            answer = input("Proceed to stop the instance? [Yn]: ")
             if len(answer) == 0 or answer.startswith(("Y", "y")):
                 try:
                     ssh, sftp = instance.connect()
