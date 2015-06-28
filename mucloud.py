@@ -47,7 +47,7 @@ for log_name in ["paramiko.transport", "sshtunnel"]:
         logging.NullHandler()
     )
 
-__version__ = 1.1
+__version__ = 1.2
 
 PORT = 35367
 MUMAX_OUTPUT = "=" * 20 + " MuMax3 output " + "=" * 20
