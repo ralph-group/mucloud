@@ -1,9 +1,9 @@
-## Installing on Linux ##
+## Installing on Linux 
 
-Instructions for installing the necessary Python libraries and MuCloud on Linux are provided.
+The simplest method of running MuCloud is with the [latest executable version](https://github.com/ralph-group/mucloud/releases). Alternatively, the following instructions illustrate how to install the necessary Python libraries on Linux to run MuCloud from the source.
 
 ### Installing Python ###
-Python 2.7 is usually already installed through a system package (`python` on Ubuntu). Alternatively it can be installed from the [latest source release](https://www.python.org/downloads/). The [pip installer](https://pip.pypa.io/en/latest/installing.html) is required, which may need to be installed seperately (`python-pip` on Ubuntu).
+Python 2.7 is usually already installed through a system package (`python` on Ubuntu). Alternatively it can be installed from the [latest source release](https://www.python.org/downloads/). The [pip installer](https://pip.pypa.io/en/latest/installing.html) is required, which may need to be installed seperately (`python-pip` on Ubuntu). Python 3 can also be used.
 
 ### Installing MuCloud ###
 First, download the [latest release from GitHub](https://github.com/ralph-group/mucloud/releases). Extract the files in a good place and open a terminal in that directory.

@@ -1,6 +1,6 @@
 ## Installing on MacOSX ##
 
-Instructions for installing the necessary Python libraries and MuCloud on MacOSX are provided.
+The simplest method of running MuCloud is with the [latest executable version](https://github.com/ralph-group/mucloud/releases). Alternatively, the following instructions illustrate how to install the necessary Python libraries on MacOSX to run MuCloud from the source.
 
 ### Installing Python ###
 

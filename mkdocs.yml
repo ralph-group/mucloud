@@ -1,10 +1,13 @@
 site_name: MuCloud
 pages:
-- ['index.md', 'Introduction']
-- ['install_linux.md', 'Installing', 'Install on Linux']
-- ['install_mac.md', 'Installing', 'Install on MacOSX']
-- ['install_windows.md', 'Installing', 'Install on Windows']
-- ['setup_aws.md', 'Installing', 'Setting up AWS']
-- ['tutorial.md', 'Tutorial']
-- ['license.md', 'About', 'License']
-theme: cerulean
+- Introduction: 'index.md'
+- Installing:
+    - Install on Linux: 'install_linux.md'
+    - Install on MacOSX: 'install_mac.md'
+    - Install on Windows: 'install_windows.md'
+    - Setting up AWS: 'setup_aws.md'
+- Tutorial: 'tutorial.md'
+- About:
+    - License: 'license.md'
+theme_dir: docs_theme
+copyright: Copyright &copy; 2014-2015 Colin Jermain, Graham Rowlands

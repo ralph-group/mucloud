@@ -1,6 +1,6 @@
 ## Installing on Windows ##
 
-Instructions for installing the necessary Python libraries and MuCloud on Windows are provided.
+The simplest method of running MuCloud is with the [latest executable version](https://github.com/ralph-group/mucloud/releases). Alternatively, the following instructions illustrate how to install the necessary Python libraries on Windows to run MuCloud from the source.
 
 ### Installing Python ###
 Download the latest release of [Python 2.7](https://www.python.org/downloads/) (currently 2.7.9 as of 1/23/15). Version 2.7.9 comes with the pip installer, which is required for installing the necessary libraries. If you already have Python 2.7 and want to install pip separately, follow [these instructions](https://pip.pypa.io/en/latest/installing.html#install-pip).

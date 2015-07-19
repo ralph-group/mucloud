@@ -5,12 +5,11 @@ This software allows [MuMax3](http://mumax.github.io/) GPU-accelerated micromagn
 
 **Authors:** Colin Jermain, Graham Rowlands  
 **License:** [MIT License](http://opensource.org/licenses/MIT)
+**Version:** 1.2 (supports MuMax 3.8)
 
 **Instructions:** http://ralph-group.github.io/mucloud
 
-**Requirements:**   
-    Amazon Web Services account   
-    Python 2.7   
+**Requirements:** Amazon Web Services account
 
 Below is an example of running Standard Problem 4 with MuCloud on a Windows machine.
 
