@@ -12,6 +12,10 @@ After your account has been created, open the [AWS Console](https://console.aws.
 
 <img src="aws_2.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
 
+Since the Amazon machine instance (AMI) for MuCloud is in the US East (N. Virginia) region, choose that region in the upper right hand dropdown.
+
+<img src="aws_2_1.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
+
 Choose IAM (Identity and Access Management) > Users > Create New Users.
 
 <img src="aws_3.png" height="250" style="border: solid 1px #333333; padding: 4px;" />
