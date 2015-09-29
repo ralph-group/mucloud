@@ -56,14 +56,17 @@ Specific help on commands is accessed in the following way. ::
     $ python mucloud.py run --help
 
 
+.. _running a simulation:
+
 Running a simulation
 --------------------
 
 .. _Standard Problem 4: https://raw.githubusercontent.com/mumax/3/arne/test/standardproblem4.mx3
+.. _instructions on setting up your AWS account: setup.html#creating-a-security-group
 
 Simulations are run by passing a MuMax3 .mx3 file to a running GPU instance. The run command automatically selects an existing and ready instance, or prompts you to start one. For now, lets assume you do not have any instances started.
 
-Pass the file path of the .mx3 file into the `run` command. If you do not already have a simulation you can use `Standard Problem 4`_, implemented by MuMax3. ::
+Pass the file path of the .mx3 file into the ``run`` command. If you do not already have a simulation you can use `Standard Problem 4`_, implemented by MuMax3. ::
 
     $ python mucloud.py run ../tests/standardproblem4.mx3
     There are no instances waiting to be used.
@@ -74,21 +77,21 @@ Answer Yes (Y) to create a new instance. ::
     Creating a new instance i-d046242d from image ami-3437145c
     Waiting for instance to boot...
 
-There will be a boot time (typically 1 min) since you are starting up the instance. This can be avoided by [starting an instance before using the run command](#starting-an-instance).
+There will be a boot time (typically 1 min) since you are starting up the instance. This can be avoided by `starting an instance before using the run command`_.
 
-If you have trouble making a secure connection, make sure that your IP address is included in the security group as was described in the `instructions on setting up your AWS account`](setup_aws/#creating-a-security-group). ::
+If you have trouble making a secure connection, make sure that your IP address is included in the security group as was described in the `instructions on setting up your AWS account`_. ::
 
     Instance i-d046242d is ready
     Making secure connection to instance i-d046242d...
     Transferring input file to instance: standardproblem4.mx3
     Starting port forwarding: http://127.0.0.1:35367
 
-At this point your instance has the simulation file and is about to be started. The software forwards the MuMax3 web-interface, which is accessible through your local browser on `<http://127.0.0.1:35367>`_. This port can be changed by using the `--port` flag of the `run` command.
+At this point your instance has the simulation file and is about to be started. The software forwards the MuMax3 web-interface, which is accessible through your local browser on `<http://127.0.0.1:35367>`_. This port can be changed by using the ``--port`` flag of the ``run`` command.
 
 .. image:: _static/tutorial_1.png
     :class: bordered-image
 
-Now the MuMax3 output is forwarded as the simulation runs. You can interrupt the execution of the simulation using `Ctrl-C` to cause a keyboard interrupt. Be careful to only use this functionality when you are within the MuMax3 output, as it may otherwise interrupt the normal simulation. This will prompt you to choose between either [detaching from the simulation](#detaching-from-an-instance) (D), aborting the simulation (a), or continuing to run (c). ::
+Now the MuMax3 output is forwarded as the simulation runs. You can interrupt the execution of the simulation using ``Ctrl-C`` to cause a keyboard interrupt. Be careful to only use this functionality when you are within the MuMax3 output, as it may otherwise interrupt the normal simulation. This will prompt you to choose between either `detaching from the simulation`_ (D), aborting the simulation (a), or continuing to run (c). ::
 
     ==================== MuMax3 output ====================
     //output directory: /home/ubuntu/simulations/standardproblem4.out/
@@ -149,7 +152,7 @@ The data files have already been transfered to the same directory that contained
 Listing instances
 -----------------
 
-You can list which instances are running and which are stopped by using the `list` command. This allows you to examine the AWS ID, IP addresses, and the state of instances, including the port and file of running simulations. ::
+You can list which instances are running and which are stopped by using the ``list`` command. This allows you to examine the AWS ID, IP addresses, and the state of instances, including the port and file of running simulations. ::
 
     $ python mucloud.py list
     MuCloud Instances:
@@ -157,26 +160,28 @@ You can list which instances are running and which are stopped by using the `lis
         i-c253313f  52.4.70.180 simulating  35367       standardproblem4.mx3
         i-eac3f310  None        stopped     
 
-Above you can see that one instance (AWS ID: i-c253313f) is simulating `standardproblem4.mx3` with the web-interface displaying on your local port 35367. Another instance (AWS ID: i-eac3f310) is stopped and can be started for future use.
+Above you can see that one instance (AWS ID: i-c253313f) is simulating ``standardproblem4.mx3`` with the web-interface displaying on your local port 35367. Another instance (AWS ID: i-eac3f310) is stopped and can be started for future use.
 
 Starting an instance
 --------------------
 
-Since the boot up time takes a minute, instances can be started directly and independent of the `run` command. There are two methods for starting instances: (1) starting a new instance, and (2) starting a stopped instance using the AWS ID.
+Since the boot up time takes a minute, instances can be started directly and independent of the ``run`` command. There are two methods for starting instances: (1) starting a new instance, and (2) starting a stopped instance using the AWS ID.
+
+.. _starting an instance before using the run command:
 
 (1) Starting a new instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A new instance is started using the `launch` sub-command. ::
+A new instance is started using the ``launch`` sub-command. ::
 
     $ python mucloud.py launch
 
-The optional `--wait` flag keeps the command from returning until the instance is started.
+The optional ``--wait`` flag keeps the command from returning until the instance is started.
 
 (2) Starting a stopped instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If the instance is in the stopped state, it can be started using the `start` sub-command. ::
+If the instance is in the stopped state, it can be started using the ``start`` sub-command. ::
 
     $ python mucloud.py start i-ab9a7c51
 
@@ -187,7 +192,7 @@ After (2), we can interrogate the instances to see that i-ab9a7c51 is now ready.
         ID          IP          State       Port        File
         i-ab9a7c51  52.1.87.187 ready
 
-A subsequent `run` command will automatically use instance i-ab9a7c51 since it is ready. ::
+A subsequent ``run`` command will automatically use instance i-ab9a7c51 since it is ready. ::
 
     $ python mucloud.py run ./tests/standardproblem4.mx3
     Instance i-ab9a7c51 is ready
@@ -198,7 +203,7 @@ A subsequent `run` command will automatically use instance i-ab9a7c51 since it i
 Stopping an instance
 --------------------
 
-Stopping an instance can be achieved through the `stop` command by passing the AWS ID. ::
+Stopping an instance can be achieved through the ``stop`` command by passing the AWS ID. ::
 
     $ python mucloud.py stop i-ab9a7c51
 
@@ -209,15 +214,18 @@ Terminating an instance is the recommend way to deal with instances upon simulat
 
     $ python mucloud.py terminate i-ab9a7c51
 
+.. _detaching from the simulation:
+.. _detaching from an instance:
+
 Detaching from an instance
 --------------------------
 
-For long running simulations, keeping an open connection to the instance may be prohibitive. The detached mode allows the simulations to continue to run even without the MuCloud program connected. The simulation must be [reattached to](#reattaching-to-an-instance) at a later time in order to retrieve the simulation output. There are two methods for using the detached mode: (1) detaching from a running simulation, and (2) starting a simulation in detached mode.
+For long running simulations, keeping an open connection to the instance may be prohibitive. The detached mode allows the simulations to continue to run even without the MuCloud program connected. The simulation must be `reattached to`_ at a later time in order to retrieve the simulation output. There are two methods for using the detached mode: (1) detaching from a running simulation, and (2) starting a simulation in detached mode.
 
 (1) Detaching from a running simulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As described when [running a simulation](#running-a-simulation), using `Ctrl-C` during the simulation causes a keyboard interrupt. Choose to detach (D) when prompted after the keyboard interrupt. ::
+As described when `running a simulation`_, using ``Ctrl-C`` during the simulation causes a keyboard interrupt. Choose to detach (D) when prompted after the keyboard interrupt. ::
 
     Caught keyboard interrupt during simulation
     Detach, abort, or continue the simulation? [Dac]: D
@@ -229,7 +237,7 @@ As described when [running a simulation](#running-a-simulation), using `Ctrl-C` 
 (2) Starting a simulation in detached mode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the `--detach` flag with the `run` command to automatically go into the detached mode when starting a simulation. ::
+Use the ``--detach`` flag with the ``run`` command to automatically go into the detached mode when starting a simulation. ::
 
     $ python mucloud.py run tests/standardproblem4.mx3 --detach
     Instance i-fca5c701 is ready
@@ -241,10 +249,12 @@ Use the `--detach` flag with the `run` command to automatically go into the deta
     Detaching from instance with simulation running
     Reattach with: python mucloud.py reattach i-fca5c701
 
+.. _reattached to:
+
 Reattaching to an instance
 --------------------------
 
-After [detaching from an instance](#detaching-from-an-instance), it is necessary to reattach to retrieve the output files. If the simulation has not yet finished, the MuMax3 output will be updated in the same way as the `run` command. ::
+After `detaching from an instance`_, it is necessary to reattach to retrieve the output files. If the simulation has not yet finished, the MuMax3 output will be updated in the same way as the ``run`` command. ::
 
     $ python mucloud.py reattach i-fca5c701
     Reconnecting to running instance
