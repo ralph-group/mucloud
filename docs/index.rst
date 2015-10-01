@@ -11,6 +11,7 @@ With your `Amazon Web Services`_ (AWS) account, virtual computer instances are c
 .. _Amazon Web Services: http://aws.amazon.com/
 .. _Elastic Compute Cloud: http://aws.amazon.com/ec2/
 .. _price per hour: http://aws.amazon.com/ec2/pricing/
+.. _MIT License: license.html
 
 Citing
 ------
@@ -18,7 +19,13 @@ If you make significant use of this program, we kindly ask that you cite:
 
     *GPU-accelerated micromagnetic simulations using cloud computing*, `arXiv:1505.01207`__ (2015)
 
+The code is written and maintained by `Colin Jermain`_ and `Graham Rowlands`_ from Cornell University in the `Ralph`_ and `Buhrman`_ research groups. MuCloud is open-source software, released under the `MIT License`_.
+
 .. __: http://arxiv.org/abs/1505.01207
+.. _Colin Jermain: https://github.com/cjermain
+.. _Graham Rowlands: http://www.grahamerowlands.com/
+.. _Ralph: http://ralphgroup.lassp.cornell.edu/
+.. _Buhrman: http://buhrman.research.engineering.cornell.edu/
 
 Usage
 -----
