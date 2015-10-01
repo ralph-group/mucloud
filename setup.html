@@ -1,0 +1,179 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Setting up AWS &mdash; MuCloud: Micromagnetics on Cloud Computing</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/styles.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="shortcut icon" href="_static/logo.ico"/>
+    <link rel="top" title="MuCloud: Micromagnetics on Cloud Computing" href="index.html" />
+    <link rel="next" title="Tutorial" href="tutorial.html" />
+    <link rel="prev" title="Installation" href="install.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="tutorial.html" title="Tutorial"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="install.html" title="Installation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">MuCloud: Micromagnetics on Cloud Computing</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="setting-up-aws">
+<h1>Setting up AWS<a class="headerlink" href="#setting-up-aws" title="Permalink to this headline">¶</a></h1>
+<p>Instructions for setting up your Amazon Web Services (AWS) account to use with MuCloud are provided, which follow the <a class="reference external" href="install.html">installation step</a>.</p>
+<div class="section" id="making-a-user">
+<h2>Making a user<a class="headerlink" href="#making-a-user" title="Permalink to this headline">¶</a></h2>
+<p>Begin by <a class="reference external" href="https://console.aws.amazon.com/console/home">signing up</a> for an Amazon Web Services account.</p>
+<img alt="_images/aws_1.png" class="bordered-image" src="_images/aws_1.png" />
+<p>After your account has been created, open the <a class="reference external" href="https://console.aws.amazon.com/console/">AWS Console</a>.</p>
+<img alt="_images/aws_2.png" class="bordered-image" src="_images/aws_2.png" />
+<p>Since the Amazon Machine Image (AMI) for MuCloud is in the US East (N. Virginia) region, choose that region in the upper right hand dropdown.</p>
+<img alt="_images/aws_2_1.png" class="bordered-image" src="_images/aws_2_1.png" />
+<p>Choose IAM (Identity and Access Management) &gt; Users &gt; Create New Users.</p>
+<img alt="_images/aws_3.png" class="bordered-image" src="_images/aws_3.png" />
+<p>Create a user &#8220;mucloud&#8221; (leave &#8220;Generate access key for each user&#8221; checked). Show the User Security Credentials, and copy the &#8220;Access Key ID&#8221; (<code class="docutils literal"><span class="pre">AccessID</span></code>) and &#8220;Secret Access Key&#8221; (<code class="docutils literal"><span class="pre">SecretKey</span></code>) into the MuCloud <code class="docutils literal"><span class="pre">config.ini</span></code> that came with the latest release.</p>
+<img alt="_images/aws_4.png" class="bordered-image" src="_images/aws_4.png" />
+<p>Download the credentials and keep them in a safe place. Close to return to the Users menu.</p>
+<p>Under Users &gt; mucloud, Attach User Policy.</p>
+<img alt="_images/aws_5.png" class="bordered-image" src="_images/aws_5.png" />
+<p>Search and select &#8220;AmazonEC2FullAccess&#8221;. Attach this policy to the &#8220;mucloud&#8221; user.</p>
+<img alt="_images/aws_6.png" class="bordered-image" src="_images/aws_6.png" />
+<p>Now your &#8220;mucloud&#8221; user has been created and has full permission to use EC2, without allowing access to any other AWS services for security reasons.</p>
+</div>
+<div class="section" id="getting-a-private-key">
+<h2>Getting a private key<a class="headerlink" href="#getting-a-private-key" title="Permalink to this headline">¶</a></h2>
+<p>From the AWS Console, open up EC2.</p>
+<img alt="_images/aws_2.png" class="bordered-image" src="_images/aws_2.png" />
+<p>Choose Key Pairs &gt; Create Key Pair. Create a key pair with name &#8220;mucloud&#8221;, and update <code class="docutils literal"><span class="pre">config.ini</span></code> (<code class="docutils literal"><span class="pre">PrivateKeyName</span></code>) with this name.</p>
+<img alt="_images/aws_7.png" class="bordered-image" src="_images/aws_7.png" />
+<p>Download the <code class="docutils literal"><span class="pre">.pem</span></code> file and save it to a safe place. On Linux and MacOSX change the permissions of the <code class="docutils literal"><span class="pre">.pem</span></code> file to prevent others from reading it.</p>
+<blockquote>
+<div>chmod 500 mucloud.pem</div></blockquote>
+<p>Update <code class="docutils literal"><span class="pre">config.ini</span></code> with the path of the <code class="docutils literal"><span class="pre">.pem</span></code> private key (<code class="docutils literal"><span class="pre">PrivateKeyFile</span></code>). Now you have a private key with which you can connect to your instance with SSH.</p>
+</div>
+<div class="section" id="creating-a-security-group">
+<h2>Creating a security group<a class="headerlink" href="#creating-a-security-group" title="Permalink to this headline">¶</a></h2>
+<p>From EC2, choose Security Groups &gt; Create Security Group.</p>
+<img alt="_images/aws_8.png" class="bordered-image" src="_images/aws_8.png" />
+<p>Set the security group name to &#8220;mucloud&#8221;, and update <code class="docutils literal"><span class="pre">config.ini</span></code> (<code class="docutils literal"><span class="pre">SecurityGroups</span></code>) with this name. A description is required by AWS. On the Inbound tab &gt; Add Rule &gt; &#8220;Type: SSH&#8221;.</p>
+<p>For the best security, choose &#8220;Source: My IP&#8221;. Note that if your IP changes, <strong>you will have to edit the security group again to update the IP.</strong> Alternatively &#8220;Source: Anywhere&#8221; can be used.</p>
+</div>
+<div class="section" id="verify-your-image">
+<h2>Verify your image<a class="headerlink" href="#verify-your-image" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal"><span class="pre">Image</span></code> setting in <code class="docutils literal"><span class="pre">config.ini</span></code> specifies the Amazon Machine Image (AMI) that GPU instances are created from. Check the <a class="reference external" href="https://github.com/ralph-group/mucloud/releases">release page</a> to ensure that you have the latest AMI for your version of MuCloud. The public AMIs are only avalible in the U.S. East region. Advanced users can make their own custom AMIs to extend the features of MuCloud or <a class="reference external" href="https://aws.amazon.com/blogs/aws/ec2-ami-copy-between-regions/">copy them to a different region</a>.</p>
+<p>After you checked that you have the latest AMI, your AWS account has been set up properly and your <code class="docutils literal"><span class="pre">config.ini</span></code> file has been updated. The next step is to start using MuCloud, or <a class="reference external" href="tutorial.html">follow the tutorial</a> to get started.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/artwork/mucloud.png" alt="Logo"/>
+    
+    <h1 class="logo logo-name">MuCloud</h2>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Setting up AWS</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#making-a-user">Making a user</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-a-private-key">Getting a private key</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#creating-a-security-group">Creating a security group</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#verify-your-image">Verify your image</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Change Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+
+<ul class="curent">
+    <li class="toctree-l1">
+        <a href="http://github.com/ralph-group/mucloud" class="reference internal"><i class="fa fa-github"></i> Source code</a>
+    </li>
+</ul>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014-2015, Colin Jermain, Graham Rowlands.
+      
+    </div>
+
+    
+    <a href="https://github.com/ralph-group/mucloud" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

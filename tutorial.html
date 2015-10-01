@@ -1,0 +1,370 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Tutorial &mdash; MuCloud: Micromagnetics on Cloud Computing</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/styles.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="shortcut icon" href="_static/logo.ico"/>
+    <link rel="top" title="MuCloud: Micromagnetics on Cloud Computing" href="index.html" />
+    <link rel="next" title="FAQ" href="faq.html" />
+    <link rel="prev" title="Setting up AWS" href="setup.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="faq.html" title="FAQ"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="setup.html" title="Setting up AWS"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">MuCloud: Micromagnetics on Cloud Computing</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="tutorial">
+<h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
+<p>After <a class="reference external" href="install.html">installing MuCloud</a> and <a class="reference external" href="setup.html">setting up your account</a> on Amazon Web Services (AWS) you are ready to start the tutorial.</p>
+<div class="section" id="aws-billing">
+<h2>AWS billing<a class="headerlink" href="#aws-billing" title="Permalink to this headline">¶</a></h2>
+<p>Throughout using MuCloud, remember that your AWS account will be <a class="reference external" href="http://aws.amazon.com/ec2/pricing/">charged per hour</a> for each running instance (g2.2xlarge). Fractional hours are billed as full hours. When instances are stopped, you will be <cite>charged a small storage fee</cite> for the instance volume. The best practice is to terminate any instance that you are not using to halt charges.</p>
+</div>
+<div class="section" id="reporting-an-error">
+<h2>Reporting an error<a class="headerlink" href="#reporting-an-error" title="Permalink to this headline">¶</a></h2>
+<p>If you experience any error in the the operation of MuCloud, make sure to first stop or terminate your instances as appropriate. This can be done manually in the <a class="reference external" href="https://console.aws.amazon.com/console/">AWS Console</a>, under EC2 &gt; Instances.</p>
+<p>Errors should be reported through GitHub on our <a class="reference external" href="https://github.com/ralph-group/mucloud/issues">Issues page</a>.</p>
+</div>
+<div class="section" id="accessing-the-help-menu">
+<h2>Accessing the help menu<a class="headerlink" href="#accessing-the-help-menu" title="Permalink to this headline">¶</a></h2>
+<p>Open a terminal or command prompt and change the directory to where you have stored the MuCloud software. If you have a stand-alone executable, replace <code class="docutils literal"><span class="pre">python</span> <span class="pre">mucloud.py</span></code> with the executable name (<cite>e.g.</cite> <code class="docutils literal"><span class="pre">mucloud.exe</span></code>). Clicking on an executable will not start MuCloud, which is required to be accessed through a command prompt or terminal.</p>
+<p>First lets start by accessing the help menu, where you can look for assistance on the command syntax.</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python mucloud.py --help
+usage: mucloud.py [-h] {run,list,launch,terminate,stop,start,reattach} ...
+
+Runs MuMax3 .mx3 files on Amazon Web Services (AWS) instances
+
+positional arguments:
+  {run,list,launch,terminate,stop,start,reattach}
+                        sub-command help
+    run                 run help
+    list                list help
+    launch              launch help
+    terminate           terminate help
+    stop                stop help
+    start               start help
+    reattach            reattach help
+
+optional arguments:
+  -h, --help            show this help message and exit
+</pre></div>
+</div>
+<p>Specific help on commands is accessed in the following way.</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python mucloud.py run --help
+</pre></div>
+</div>
+</div>
+<div class="section" id="running-a-simulation">
+<span id="id1"></span><h2>Running a simulation<a class="headerlink" href="#running-a-simulation" title="Permalink to this headline">¶</a></h2>
+<p>Simulations are run by passing a MuMax3 .mx3 file to a running GPU instance. The run command automatically selects an existing and ready instance, or prompts you to start one. For now, lets assume you do not have any instances started.</p>
+<p>Pass the file path of the .mx3 file into the <code class="docutils literal"><span class="pre">run</span></code> command. If you do not already have a simulation you can use <a class="reference external" href="https://raw.githubusercontent.com/mumax/3/arne/test/standardproblem4.mx3">Standard Problem 4</a>, implemented by MuMax3.</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python mucloud.py run ../tests/standardproblem4.mx3
+There are no instances waiting to be used.
+Create a new instance for this job? [Yn]:
+</pre></div>
+</div>
+<p>Answer Yes (Y) to create a new instance.</p>
+<div class="highlight-python"><div class="highlight"><pre>Creating a new instance i-d046242d from image ami-3437145c
+Waiting for instance to boot...
+</pre></div>
+</div>
+<p>There will be a boot time (typically 1 min) since you are starting up the instance. This can be avoided by <a class="reference internal" href="#starting-an-instance-before-using-the-run-command">starting an instance before using the run command</a>.</p>
+<p>If you have trouble making a secure connection, make sure that your IP address is included in the security group as was described in the <a class="reference external" href="setup.html#creating-a-security-group">instructions on setting up your AWS account</a>.</p>
+<div class="highlight-python"><div class="highlight"><pre>Instance i-d046242d is ready
+Making secure connection to instance i-d046242d...
+Transferring input file to instance: standardproblem4.mx3
+Starting port forwarding: http://127.0.0.1:35367
+</pre></div>
+</div>
+<p>At this point your instance has the simulation file and is about to be started. The software forwards the MuMax3 web-interface, which is accessible through your local browser on <a class="reference external" href="http://127.0.0.1:35367">http://127.0.0.1:35367</a>. This port can be changed by using the <code class="docutils literal"><span class="pre">--port</span></code> flag of the <code class="docutils literal"><span class="pre">run</span></code> command.</p>
+<img alt="_images/tutorial_1.png" class="bordered-image" src="_images/tutorial_1.png" />
+<p>Now the MuMax3 output is forwarded as the simulation runs. You can interrupt the execution of the simulation using <code class="docutils literal"><span class="pre">Ctrl-C</span></code> to cause a keyboard interrupt. Be careful to only use this functionality when you are within the MuMax3 output, as it may otherwise interrupt the normal simulation. This will prompt you to choose between either <a class="reference internal" href="#detaching-from-the-simulation">detaching from the simulation</a> (D), aborting the simulation (a), or continuing to run (c).</p>
+<div class="highlight-python"><div class="highlight"><pre>==================== MuMax3 output ====================
+//output directory: /home/ubuntu/simulations/standardproblem4.out/
+starting GUI at http://127.0.0.1:35367
+setgridsize(128, 32, 1)
+setcellsize(500e-9/128, 125e-9/32, 3e-9)
+Msat = 1600e3
+Aex = 13e-12
+E_total.get()
+Calculating demag kernel 1 %
+Calculating demag kernel 100 %
+^C
+
+Caught keyboard interrupt during simulation
+Detach, abort, or continue the simulation? [Dac]:
+</pre></div>
+</div>
+<p>For now, lets continue if you have interrupted the simulation.</p>
+<div class="highlight-python"><div class="highlight"><pre>Continuing the simulation
+==================== MuMax3 output ====================
+//output directory: /home/ubuntu/simulations/standardproblem4.out/
+starting GUI at http://127.0.0.1:35367
+setgridsize(128, 32, 1)
+setcellsize(500e-9/128, 125e-9/32, 3e-9)
+Msat = 1600e3
+Aex = 13e-12
+E_total.get()
+Calculating demag kernel 1 %
+Calculating demag kernel 100 %
+Msat = 800e3
+alpha = 0.02
+m = uniform(1, .1, 0)
+relax()
+save(m)
+TOL := 1e-5
+expectv(&quot;m&quot;, m.average(), vector(0.9669684171676636, 0.1252732127904892, 0), TOL)
+//m[0] : 0.9669663906097412 OK
+//m[1] : 0.12527959048748016 OK
+//m[2] : 0 OK
+tableautosave(10e-12)
+autosave(m, 100e-12)
+B_ext = vector(-24.6E-3, 4.3E-3, 0)
+run(1e-9)
+expectv(&quot;m&quot;, m.average(), vector(-0.9846124053001404, 0.12604089081287384, 0.04327124357223511), TOL)
+//m[0] : -0.9846120476722717 OK
+//m[1] : 0.12604430317878723 OK
+//m[2] : 0.043269284069538116 OK
+==================== MuMax3 output ====================
+Stopping port forwarding
+Receiving output files from instance
+Removing simulation output from instance
+Removing input file from instance
+Removing logs from instance
+Terminate the instance? [Yn]:
+</pre></div>
+</div>
+<p>The data files have already been transfered to the same directory that contained your .mx3 file. At this point you are asked to terminate the instance. Answering Yes (Y) will permanently remove the instance and its storage. Answering No (N), will give you the option to either keep the instance running or stop the instance. In the case the instance is stopped, you will not be charged for the hourly rate, but will incur minor storage fees for the volume. Keeping the instance running allows you to avoid the boot up time on a subsequent simulation. Remember that instances that are not shut down will continue to charge an hourly rate, and it is your responsibility to properly stop or terminate instances.</p>
+</div>
+<div class="section" id="listing-instances">
+<h2>Listing instances<a class="headerlink" href="#listing-instances" title="Permalink to this headline">¶</a></h2>
+<p>You can list which instances are running and which are stopped by using the <code class="docutils literal"><span class="pre">list</span></code> command. This allows you to examine the AWS ID, IP addresses, and the state of instances, including the port and file of running simulations.</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python mucloud.py list
+MuCloud Instances:
+    ID          IP          State       Port        File
+    i-c253313f  52.4.70.180 simulating  35367       standardproblem4.mx3
+    i-eac3f310  None        stopped
+</pre></div>
+</div>
+<p>Above you can see that one instance (AWS ID: i-c253313f) is simulating <code class="docutils literal"><span class="pre">standardproblem4.mx3</span></code> with the web-interface displaying on your local port 35367. Another instance (AWS ID: i-eac3f310) is stopped and can be started for future use.</p>
+</div>
+<div class="section" id="starting-an-instance">
+<h2>Starting an instance<a class="headerlink" href="#starting-an-instance" title="Permalink to this headline">¶</a></h2>
+<p>Since the boot up time takes a minute, instances can be started directly and independent of the <code class="docutils literal"><span class="pre">run</span></code> command. There are two methods for starting instances: (1) starting a new instance, and (2) starting a stopped instance using the AWS ID.</p>
+<div class="section" id="starting-a-new-instance">
+<span id="starting-an-instance-before-using-the-run-command"></span><h3>(1) Starting a new instance<a class="headerlink" href="#starting-a-new-instance" title="Permalink to this headline">¶</a></h3>
+<p>A new instance is started using the <code class="docutils literal"><span class="pre">launch</span></code> sub-command.</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python mucloud.py launch
+</pre></div>
+</div>
+<p>The optional <code class="docutils literal"><span class="pre">--wait</span></code> flag keeps the command from returning until the instance is started.</p>
+</div>
+<div class="section" id="starting-a-stopped-instance">
+<h3>(2) Starting a stopped instance<a class="headerlink" href="#starting-a-stopped-instance" title="Permalink to this headline">¶</a></h3>
+<p>If the instance is in the stopped state, it can be started using the <code class="docutils literal"><span class="pre">start</span></code> sub-command.</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python mucloud.py start i-ab9a7c51
+</pre></div>
+</div>
+<p>After (2), we can interrogate the instances to see that i-ab9a7c51 is now ready.</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python mucloud.py list
+MuCloud Instances:
+    ID          IP          State       Port        File
+    i-ab9a7c51  52.1.87.187 ready
+</pre></div>
+</div>
+<p>A subsequent <code class="docutils literal"><span class="pre">run</span></code> command will automatically use instance i-ab9a7c51 since it is ready.</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python mucloud.py run ./tests/standardproblem4.mx3
+Instance i-ab9a7c51 is ready
+Making secure connection to instance i-ab9a7c51...
+Transferring input file to instance: standardproblem4.mx3
+...
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="stopping-an-instance">
+<h2>Stopping an instance<a class="headerlink" href="#stopping-an-instance" title="Permalink to this headline">¶</a></h2>
+<p>Stopping an instance can be achieved through the <code class="docutils literal"><span class="pre">stop</span></code> command by passing the AWS ID.</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python mucloud.py stop i-ab9a7c51
+</pre></div>
+</div>
+</div>
+<div class="section" id="terminating-an-instance">
+<h2>Terminating an instance<a class="headerlink" href="#terminating-an-instance" title="Permalink to this headline">¶</a></h2>
+<p>Terminating an instance is the recommend way to deal with instances upon simulation completion, unless further simulations will immediately follow.</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python mucloud.py terminate i-ab9a7c51
+</pre></div>
+</div>
+</div>
+<div class="section" id="detaching-from-an-instance">
+<span id="detaching-from-the-simulation"></span><span id="id2"></span><h2>Detaching from an instance<a class="headerlink" href="#detaching-from-an-instance" title="Permalink to this headline">¶</a></h2>
+<p>For long running simulations, keeping an open connection to the instance may be prohibitive. The detached mode allows the simulations to continue to run even without the MuCloud program connected. The simulation must be <a class="reference internal" href="#reattached-to">reattached to</a> at a later time in order to retrieve the simulation output. There are two methods for using the detached mode: (1) detaching from a running simulation, and (2) starting a simulation in detached mode.</p>
+<div class="section" id="detaching-from-a-running-simulation">
+<h3>(1) Detaching from a running simulation<a class="headerlink" href="#detaching-from-a-running-simulation" title="Permalink to this headline">¶</a></h3>
+<p>As described when <a class="reference internal" href="#running-a-simulation">running a simulation</a>, using <code class="docutils literal"><span class="pre">Ctrl-C</span></code> during the simulation causes a keyboard interrupt. Choose to detach (D) when prompted after the keyboard interrupt.</p>
+<div class="highlight-python"><div class="highlight"><pre>Caught keyboard interrupt during simulation
+Detach, abort, or continue the simulation? [Dac]: D
+Detaching from instance with simulation running
+Reattach with: python mucloud.py reattach i-fca5c701
+==================== MuMax3 output ====================
+Stopping port forwarding
+</pre></div>
+</div>
+</div>
+<div class="section" id="starting-a-simulation-in-detached-mode">
+<h3>(2) Starting a simulation in detached mode<a class="headerlink" href="#starting-a-simulation-in-detached-mode" title="Permalink to this headline">¶</a></h3>
+<p>Use the <code class="docutils literal"><span class="pre">--detach</span></code> flag with the <code class="docutils literal"><span class="pre">run</span></code> command to automatically go into the detached mode when starting a simulation.</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python mucloud.py run tests/standardproblem4.mx3 --detach
+Instance i-fca5c701 is ready
+Making secure connection to instance i-fca5c701...
+Transferring input file to instance: standardproblem4.mx3
+Starting port forwarding: http://127.0.0.1:35367
+Running standardproblem4.mx3 on MuMax3
+Stopping port forwarding
+Detaching from instance with simulation running
+Reattach with: python mucloud.py reattach i-fca5c701
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="reattaching-to-an-instance">
+<span id="reattached-to"></span><h2>Reattaching to an instance<a class="headerlink" href="#reattaching-to-an-instance" title="Permalink to this headline">¶</a></h2>
+<p>After <a class="reference internal" href="#detaching-from-an-instance">detaching from an instance</a>, it is necessary to reattach to retrieve the output files. If the simulation has not yet finished, the MuMax3 output will be updated in the same way as the <code class="docutils literal"><span class="pre">run</span></code> command.</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python mucloud.py reattach i-fca5c701
+Reconnecting to running instance
+Making secure connection to instance i-fca5c701...
+Starting port forwarding: http://127.0.0.1:35367
+...
+</pre></div>
+</div>
+</div>
+<div class="section" id="next-steps">
+<h2>Next steps<a class="headerlink" href="#next-steps" title="Permalink to this headline">¶</a></h2>
+<p>Now you are familiar with all the commands that MuCloud supports, and are ready to start simulations. If you have further questions about the operation, consult the <a class="reference external" href="https://github.com/ralph-group/mucloud">source code</a> or <a class="reference external" href="https://github.com/ralph-group/mucloud/issues/">report an issue</a> on GitHub.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/artwork/mucloud.png" alt="Logo"/>
+    
+    <h1 class="logo logo-name">MuCloud</h2>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setting up AWS</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#aws-billing">AWS billing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reporting-an-error">Reporting an error</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#accessing-the-help-menu">Accessing the help menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-a-simulation">Running a simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#listing-instances">Listing instances</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#starting-an-instance">Starting an instance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#stopping-an-instance">Stopping an instance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#terminating-an-instance">Terminating an instance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#detaching-from-an-instance">Detaching from an instance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reattaching-to-an-instance">Reattaching to an instance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#next-steps">Next steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Change Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+
+<ul class="curent">
+    <li class="toctree-l1">
+        <a href="http://github.com/ralph-group/mucloud" class="reference internal"><i class="fa fa-github"></i> Source code</a>
+    </li>
+</ul>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014-2015, Colin Jermain, Graham Rowlands.
+      
+    </div>
+
+    
+    <a href="https://github.com/ralph-group/mucloud" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

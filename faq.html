@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>MuCloud &mdash; MuCloud: Micromagnetics on Cloud Computing</title>
+    <title>FAQ &mdash; MuCloud: Micromagnetics on Cloud Computing</title>
     
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -27,8 +27,9 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="shortcut icon" href="_static/logo.ico"/>
-    <link rel="top" title="MuCloud: Micromagnetics on Cloud Computing" href="#" />
-    <link rel="next" title="Installation" href="install.html" />
+    <link rel="top" title="MuCloud: Micromagnetics on Cloud Computing" href="index.html" />
+    <link rel="next" title="Change Log" href="changelog.html" />
+    <link rel="prev" title="Tutorial" href="tutorial.html" />
    
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
@@ -42,9 +43,12 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="install.html" title="Installation"
+          <a href="changelog.html" title="Change Log"
              accesskey="N">next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="#">MuCloud: Micromagnetics on Cloud Computing</a> &raquo;</li> 
+        <li class="right" >
+          <a href="tutorial.html" title="Tutorial"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">MuCloud: Micromagnetics on Cloud Computing</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -53,25 +57,14 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="mucloud">
-<h1>MuCloud<a class="headerlink" href="#mucloud" title="Permalink to this headline">¶</a></h1>
-<p>MuCloud runs <a class="reference external" href="http://mumax.github.io/">MuMax3</a> GPU-accelerated micromagnetic simulations on the cloud, eliminating the need to have a GPU card on your computer.</p>
-<img alt="_images/concept.png" src="_images/concept.png" />
-<p>With your <a class="reference external" href="http://aws.amazon.com/">Amazon Web Services</a> (AWS) account, virtual computer instances are created using the <a class="reference external" href="http://aws.amazon.com/ec2/">Elastic Compute Cloud</a> (EC2). These instances provide on-demand (<a class="reference external" href="http://aws.amazon.com/ec2/pricing/">price per hour</a>) access to physical GPU hardware, that allow the simulations to be run remotely. The script interface mimics MuMax3, so that working with MuCloud is as easy as using MuMax3 on a local computer.</p>
-<div class="section" id="citing">
-<h2>Citing<a class="headerlink" href="#citing" title="Permalink to this headline">¶</a></h2>
-<p>If you make significant use of this program, we kindly ask that you cite:</p>
+  <div class="section" id="faq">
+<h1>FAQ<a class="headerlink" href="#faq" title="Permalink to this headline">¶</a></h1>
+<p>What happens if I get the error <code class="docutils literal"><span class="pre">The</span> <span class="pre">image</span> <span class="pre">id</span> <span class="pre">'[ami-...]'</span> <span class="pre">does</span> <span class="pre">not</span> <span class="pre">exist</span></code>?</p>
 <blockquote>
-<div><em>GPU-accelerated micromagnetic simulations using cloud computing</em>, <a class="reference external" href="http://arxiv.org/abs/1505.01207">arXiv:1505.01207</a> (2015)</div></blockquote>
-<p>The code is written and maintained by <a class="reference external" href="https://github.com/cjermain">Colin Jermain</a> and <a class="reference external" href="http://www.grahamerowlands.com/">Graham Rowlands</a> from Cornell University in the <a class="reference external" href="http://ralphgroup.lassp.cornell.edu/">Ralph</a> and <a class="reference external" href="http://buhrman.research.engineering.cornell.edu/">Buhrman</a> research groups. MuCloud is open-source software, released under the <a class="reference external" href="license.html">MIT License</a>.</p>
-</div>
-<div class="section" id="usage">
-<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
-<p>A <a class="reference external" href="tutorial.html">full tutorial</a> is provided to get you started that covers all the functionality of the program. Below is an example of running Standard Problem 4 with MuCloud on a Windows machine.</p>
-<img alt="_images/standard_problem_4.gif" src="_images/standard_problem_4.gif" />
-<div class="toctree-wrapper compound">
-</div>
-</div>
+<div>This occurs because the AMI, specified in your <code class="docutils literal"><span class="pre">config.ini</span></code> file, is out of date with the current AMI for your version of MuCloud. The latest AMI for a particular version of MuCloud can be found on the <a class="reference external" href="https://github.com/ralph-group/mucloud/releases">release page</a>.</div></blockquote>
+<p>Can I use a region other than U.S. East?</p>
+<blockquote>
+<div>The public AMI that is provided with MuCloud is only accessible for the U.S. East region. If you copy that AMI into your own account, you can <a class="reference external" href="https://aws.amazon.com/blogs/aws/ec2-ami-copy-between-regions/">transfer it to another region</a>. Keep in mind that there is a storage cost for the AMI content.</div></blockquote>
 </div>
 
 
@@ -81,7 +74,7 @@
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <p class="logo">
-  <a href="#">
+  <a href="index.html">
     <img class="logo" src="_static/artwork/mucloud.png" alt="Logo"/>
     
     <h1 class="logo logo-name">MuCloud</h2>
@@ -95,11 +88,11 @@
 
 
 <h3>Navigation</h3>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="setup.html">Setting up AWS</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">FAQ</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Change Log</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
