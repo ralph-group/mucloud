@@ -6,3 +6,8 @@ docs/_build/*
 docs/_templates/*
 releases/*
 dist/*
+tests/*
+mucloud.log
+build/*
+.env/*
+.env3/*
