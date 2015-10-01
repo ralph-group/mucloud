@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-Version 1.2 (development)
+Version 1.2 (10/1/15)
 
 * Compiled executables now available
 * Python 3.x compatibility
