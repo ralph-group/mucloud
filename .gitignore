@@ -1,3 +1,8 @@
 *.pyc
 *.ini
 *.pem
+config.ini
+docs/_build/*
+docs/_templates/*
+releases/*
+dist/*
