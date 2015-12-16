@@ -17,11 +17,13 @@ Citing
 ------
 If you make significant use of this program, we kindly ask that you cite:
 
-    *GPU-accelerated micromagnetic simulations using cloud computing*, `arXiv:1505.01207`__ (2015)
+    GPU-accelerated micromagnetic simulations using cloud computing,   
+    *J. Magn. Magn. Mater.* **401**, 320-322 (2016)   
+    DOI:`10.1016/j.jmmm.2015.10.054`__
 
 The code is written and maintained by `Colin Jermain`_ and `Graham Rowlands`_ from Cornell University in the `Ralph`_ and `Buhrman`_ research groups. MuCloud is open-source software, released under the `MIT License`_.
 
-.. __: http://arxiv.org/abs/1505.01207
+.. __: http://dx.doi.org/10.1016/j.jmmm.2015.10.054
 .. _Colin Jermain: https://github.com/cjermain
 .. _Graham Rowlands: http://www.grahamerowlands.com/
 .. _Ralph: http://ralphgroup.lassp.cornell.edu/
