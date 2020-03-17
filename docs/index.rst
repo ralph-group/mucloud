@@ -1,6 +1,8 @@
 MuCloud
 =======
 
+.. warning::  Many changes have occurred since this tool was developed, in both AWS and Python. This project is not being actively maintained and will be archived for further reference. We hope that it still provides a useful example for how to run simulations on cloud resources.
+
 MuCloud runs `MuMax3`_ GPU-accelerated micromagnetic simulations on the cloud, eliminating the need to have a GPU card on your computer. 
 
 .. image:: _static/concept.png
