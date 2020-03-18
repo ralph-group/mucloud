@@ -55,6 +55,10 @@
             
   <div class="section" id="mucloud">
 <h1>MuCloud<a class="headerlink" href="#mucloud" title="Permalink to this headline">¶</a></h1>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Many changes have occurred since this tool was developed, in both AWS and Python. This project is not being actively maintained and will be archived for further reference. We hope that it still provides a useful example for how to run simulations on cloud resources.</p>
+</div>
 <p>MuCloud runs <a class="reference external" href="http://mumax.github.io/">MuMax3</a> GPU-accelerated micromagnetic simulations on the cloud, eliminating the need to have a GPU card on your computer.</p>
 <img alt="_images/concept.png" src="_images/concept.png" />
 <p>With your <a class="reference external" href="http://aws.amazon.com/">Amazon Web Services</a> (AWS) account, virtual computer instances are created using the <a class="reference external" href="http://aws.amazon.com/ec2/">Elastic Compute Cloud</a> (EC2). These instances provide on-demand (<a class="reference external" href="http://aws.amazon.com/ec2/pricing/">price per hour</a>) access to physical GPU hardware, that allow the simulations to be run remotely. The script interface mimics MuMax3, so that working with MuCloud is as easy as using MuMax3 on a local computer.</p>
